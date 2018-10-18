@@ -53,10 +53,6 @@ from ..interfaces.freesurfer import (
         PatchedLTAConvert as LTAConvert,
         PatchedRobustRegister as RobustRegister)
 
-TEMPLATE_MAP = {
-    'MNI152NLin2009cAsym': 'mni_icbm152_nlin_asym_09c',
-    }
-
 
 #  pylint: disable=R0914
 def init_anat_preproc_wf(skull_strip_template, output_spaces, template, debug,
@@ -83,8 +79,8 @@ def init_anat_preproc_wf(skull_strip_template, output_spaces, template, debug,
                                   reportlets_dir='.',
                                   output_dir='.',
                                   template='MNI152NLin2009cAsym',
-                                  output_spaces=['T1w', 'fsnative',
-                                                 'template', 'fsaverage5'],
+                                  output_spaces=['T1w', 'MNI',
+                                                 'fsnative', 'fsaverage5'],
                                   skull_strip_template='OASIS',
                                   freesurfer=True,
                                   longitudinal=False,
@@ -336,11 +332,12 @@ and used as T1w-reference throughout the workflow.
         name='mni_tpms'
     )
 
-    if 'template' in output_spaces:
-        template_str = TEMPLATE_MAP[template]
-        ref_img = op.join(nid.get_dataset(template_str), '1mm_T1.nii.gz')
+    if 'MNI' in output_spaces:
+        template_id = 'MNI152NLin2009cAsym'
+        ref_img = str(nid.get_template(template_id) / \
+            ('tpl-%s_space-MNI_res-01_T1w.nii.gz' % template_id))
 
-        t1_2_mni.inputs.template = template_str
+        t1_2_mni.inputs.template = template_id
         mni_mask.inputs.reference_image = ref_img
         mni_seg.inputs.reference_image = ref_img
         mni_tpms.inputs.reference_image = ref_img
@@ -387,7 +384,7 @@ and used as T1w-reference throughout the workflow.
             (surface_recon_wf, anat_reports_wf, [
                 ('outputnode.out_report', 'inputnode.recon_report')]),
         ])
-    if 'template' in output_spaces:
+    if 'MNI' in output_spaces:
         workflow.connect([
             (t1_2_mni, anat_reports_wf, [('out_report', 'inputnode.t1_2_mni_report')]),
         ])
@@ -1198,7 +1195,7 @@ def init_anat_reports_wf(reportlets_dir, output_spaces,
             (inputnode, ds_recon_report, [('source_file', 'source_file'),
                                           ('recon_report', 'in_file')])
         ])
-    if 'template' in output_spaces:
+    if 'MNI' in output_spaces:
         workflow.connect([
             (inputnode, ds_t1_2_mni_report, [('source_file', 'source_file'),
                                              ('t1_2_mni_report', 'in_file')])
@@ -1333,7 +1330,7 @@ def init_anat_derivatives_wf(output_dir, output_spaces, template, freesurfer,
             (t1_name, ds_t1_fsaseg, [('out', 'source_file')]),
             (t1_name, ds_t1_fsparc, [('out', 'source_file')]),
         ])
-    if 'template' in output_spaces:
+    if 'MNI' in output_spaces:
         workflow.connect([
             (inputnode, ds_t1_mni_warp, [('t1_2_mni_forward_transform', 'in_file')]),
             (inputnode, ds_t1_mni_inv_warp, [('t1_2_mni_reverse_transform', 'in_file')]),

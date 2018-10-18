@@ -33,7 +33,7 @@ is presented below:
                                 skull_strip_fixed_seed=False,
                                 template='MNI152NLin2009cAsym',
                                 output_spaces=['T1w', 'fsnative',
-                                              'template', 'fsaverage5'],
+                                              'MNI', 'fsaverage5'],
                                 medial_surface_nan=False,
                                 cifti_output=False,
                                 ignore=[],
@@ -67,7 +67,7 @@ T1w/T2w preprocessing
                               output_dir='.',
                               template='MNI152NLin2009cAsym',
                               output_spaces=['T1w', 'fsnative',
-                                             'template', 'fsaverage5'],
+                                             'MNI', 'fsaverage5'],
                               skull_strip_template='OASIS',
                               skull_strip_fixed_seed=False,
                               freesurfer=True,
@@ -256,7 +256,7 @@ BOLD preprocessing
                               output_dir='.',
                               template='MNI152NLin2009cAsym',
                               output_spaces=['T1w', 'fsnative',
-                                             'template', 'fsaverage5'],
+                                             'MNI', 'fsaverage5'],
                               medial_surface_nan=False,
                               cifti_output=False,
                               debug=False,
@@ -516,7 +516,7 @@ EPI sampled to FreeSurfer surfaces
     wf = init_bold_surf_wf(
         mem_gb=1,
         output_spaces=['T1w', 'fsnative',
-                       'template', 'fsaverage5'],
+                       'MNI', 'fsaverage5'],
         medial_surface_nan=False)
 
 If FreeSurfer processing is enabled, the motion-corrected functional series

@@ -124,16 +124,20 @@ def get_parser():
                              '6 degrees (rotation and translation) are used by default.')
     g_conf.add_argument(
         '--output-space', required=False, action='store',
-        choices=['T1w', 'template', 'fsnative', 'fsaverage', 'fsaverage6', 'fsaverage5'],
-        nargs='+', default=['template', 'fsaverage5'],
-        help='volume and surface spaces to resample functional series into\n'
-             ' - T1w: subject anatomical volume\n'
-             ' - template: normalization target specified by --template\n'
-             ' - fsnative: individual subject surface\n'
-             ' - fsaverage*: FreeSurfer average meshes\n'
-             'this argument can be single value or a space delimited list,\n'
-             'for example: --output-space T1w fsnative'
-    )
+        choices=['T1w', 'MNI', 'template', 'fsnative', 'fsaverage', 'fsaverage6', 'fsaverage5'],
+        nargs='+', default=['MNI', 'fsaverage5'],
+        help="""\
+volume and surface spaces to resample functional series into
+ - T1w: subject anatomical volume
+ - MNI: spatial normalization using the target MNI template specified by --template
+ - fsnative: individual subject surface
+ - fsaverage*: FreeSurfer average meshes
+ - template: option deprecated option in fMRIPrep 1.2.0 -
+     "template" is automatically
+     replaced with "MNI"
+
+this argument can be single value or a space delimited list,
+for example: --output-space T1w MNI fsnative""")
     g_conf.add_argument(
         '--force-bbr', action='store_true', dest='use_bbr', default=None,
         help='Always use boundary-based registration (no goodness-of-fit checks)')
@@ -383,27 +387,35 @@ def build_workflow(opts, retval):
       * Run identifier: {uuid}.
     """.format
 
-    output_spaces = opts.output_space or []
+    output_spaces = list(set(opts.output_space)) or []  # Deduplicate first
+
+    if 'template' in output_spaces:
+        logger.warning(
+            'Option "template" for argument ``--output-space`` has been deprecated.'
+            ' Please use "MNI" instead.'
+        )
+        output_spaces.remove('template')
+        output_spaces = list(set(output_spaces + ['MNI']))
 
     # Validity of some inputs
     # ERROR check if use_aroma was specified, but the correct template was not
     if opts.use_aroma and (opts.template != 'MNI152NLin2009cAsym' or
-                           'template' not in output_spaces):
-        output_spaces.append('template')
+                           'MNI' not in output_spaces):
+        output_spaces.append('MNI')
         logger.warning(
             'Option "--use-aroma" requires functional images to be resampled to MNI space. '
-            'The argument "template" has been automatically added to the list of output '
+            'The argument "MNI" has been automatically added to the list of output '
             'spaces (option "--output-space").'
         )
 
     # Check output_space
-    if 'template' not in output_spaces and (opts.use_syn_sdc or opts.force_syn):
+    if 'MNI' not in output_spaces and (opts.use_syn_sdc or opts.force_syn):
         msg = ['SyN SDC correction requires T1 to MNI registration, but '
-               '"template" is not specified in "--output-space" arguments.',
+               '"MNI" is not specified in "--output-space" arguments.',
                'Option --use-syn will be cowardly dismissed.']
         if opts.force_syn:
-            output_spaces.append('template')
-            msg[1] = (' Since --force-syn has been requested, "template" has been added to'
+            output_spaces.append('MNI')
+            msg[1] = (' Since --force-syn has been requested, "MNI" has been added to'
                       ' the "--output-space" list.')
         logger.warning(' '.join(msg))
 

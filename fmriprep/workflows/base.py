@@ -69,8 +69,8 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
                               skull_strip_template='OASIS',
                               skull_strip_fixed_seed=False,
                               freesurfer=True,
-                              output_spaces=['T1w', 'fsnative',
-                                            'template', 'fsaverage5'],
+                              output_spaces=['T1w', 'MNI',
+                                             'fsnative', 'fsaverage5'],
                               template='MNI152NLin2009cAsym',
                               medial_surface_nan=False,
                               cifti_output=False,
@@ -130,7 +130,7 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
             Valid spaces:
 
              - T1w
-             - template
+             - MNI
              - fsnative
              - fsaverage (or other pre-existing FreeSurfer templates)
         template : str
@@ -262,8 +262,8 @@ def init_single_subject_wf(subject_id, task_id, name, reportlets_dir, output_dir
                                     skull_strip_fixed_seed=False,
                                     freesurfer=True,
                                     template='MNI152NLin2009cAsym',
-                                    output_spaces=['T1w', 'fsnative',
-                                                  'template', 'fsaverage5'],
+                                    output_spaces=['T1w', 'MNI',
+                                                   'fsnative', 'fsaverage5'],
                                     medial_surface_nan=False,
                                     cifti_output=False,
                                     hires=True,

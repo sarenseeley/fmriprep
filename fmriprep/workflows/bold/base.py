@@ -70,7 +70,7 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
                                   output_dir='.',
                                   template='MNI152NLin2009cAsym',
                                   output_spaces=['T1w', 'fsnative',
-                                                 'template', 'fsaverage5'],
+                                                 'MNI', 'fsaverage5'],
                                   debug=False,
                                   use_bbr=True,
                                   t2s_coreg=False,
@@ -647,7 +647,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('output_image', 'bold_mask_t1')]),
         ])
 
-    if 'template' in output_spaces:
+    if 'MNI' in output_spaces:
         # Apply transforms in 1 shot
         # Only use uncompressed output if AROMA is to be run
         bold_mni_trans_wf = init_bold_mni_trans_wf(
@@ -759,7 +759,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])
 
         # CIFTI output
-        if cifti_output and 'template' in output_spaces:
+        if cifti_output and 'MNI' in output_spaces:
             bold_surf_wf.__desc__ += """\
 *Grayordinates* files [@hcppipelines], which combine surface-sampled
 data and volume-sampled data, were also generated.
@@ -860,7 +860,7 @@ def init_func_derivatives_wf(output_dir, output_spaces, template, freesurfer,
         ])
 
     # Resample to template (default: MNI)
-    if 'template' in output_spaces:
+    if 'MNI' in output_spaces:
         ds_bold_mni = pe.Node(DerivativesDataSink(
             base_directory=output_dir, suffix=suffix_fmt(template, 'preproc'), compress=True),
             name='ds_bold_mni', run_without_submitting=True,
@@ -918,7 +918,7 @@ def init_func_derivatives_wf(output_dir, output_spaces, template, freesurfer,
         ])
 
         # CIFTI output
-        if cifti_output and 'template' in output_spaces:
+        if cifti_output and 'MNI' in output_spaces:
             name_cifti = pe.MapNode(
                 CiftiNameSource(), iterfield=['variant'], name='name_cifti',
                 mem_gb=DEFAULT_MEMORY_MIN_GB, run_without_submitting=True)

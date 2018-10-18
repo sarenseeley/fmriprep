@@ -108,7 +108,7 @@ class SubjectSummary(SummaryInterface):
             else:
                 freesurfer_status = 'Run by fMRIPrep'
 
-        output_spaces = [self.inputs.template if space == 'template' else space
+        output_spaces = [self.inputs.template if space == 'MNI' else space
                          for space in self.inputs.output_spaces]
 
         t2w_seg = ''
