@@ -20,8 +20,6 @@ structural images.
 
 """
 
-import os.path as op
-
 from pkg_resources import resource_filename as pkgr
 
 from nipype.pipeline import engine as pe
@@ -334,8 +332,8 @@ and used as T1w-reference throughout the workflow.
 
     if 'MNI' in output_spaces:
         template_id = 'MNI152NLin2009cAsym'
-        ref_img = str(nid.get_template(template_id) / \
-            ('tpl-%s_space-MNI_res-01_T1w.nii.gz' % template_id))
+        ref_img = str(nid.get_template(template_id) /
+                      ('tpl-%s_space-MNI_res-01_T1w.nii.gz' % template_id))
 
         t1_2_mni.inputs.template = template_id
         mni_mask.inputs.reference_image = ref_img
@@ -639,11 +637,13 @@ The T1w-reference was then skull-stripped using `antsBrainExtraction.sh`
         name='t1_skull_strip', n_procs=omp_nthreads)
 
     # Set appropriate inputs
-    t1_skull_strip.inputs.brain_template = str(template_dir / \
-        ('tpl-%s_res-01_T1w.nii.gz' % template_name))
-    t1_skull_strip.inputs.brain_probability_mask = str(template_dir / \
+    t1_skull_strip.inputs.brain_template = str(
+        template_dir / ('tpl-%s_res-01_T1w.nii.gz' % template_name))
+    t1_skull_strip.inputs.brain_probability_mask = str(
+        template_dir /
         ('tpl-%s_res-01_class-brainmask_probtissue.nii.gz' % template_name))
-    t1_skull_strip.inputs.extraction_registration_mask = str(template_dir / \
+    t1_skull_strip.inputs.extraction_registration_mask = str(
+        template_dir /
         ('tpl-%s_res-01_label-BrainCerebellumExtraction_roi.nii.gz' % template_name))
 
     workflow.connect([

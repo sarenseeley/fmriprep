@@ -10,14 +10,11 @@ Resampling workflows
 .. autofunction:: init_bold_preproc_trans_wf
 
 """
-import os.path as op
-
-
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, freesurfer as fs
 from nipype.interfaces.fsl import Split as FSLSplit
 
-from niworkflows import data as nid
+from niworkflows.data import get_template, TEMPLATE_MAP
 from niworkflows.interfaces.utils import GenerateSamplingReference
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 
@@ -263,12 +260,12 @@ generating a *preprocessed BOLD run in {tpl} space*.
     gen_ref = pe.Node(GenerateSamplingReference(), name='gen_ref',
                       mem_gb=0.3)  # 256x256x256 * 64 / 8 ~ 150MB)
     # Account for template aliases
-    template_name = TEMPLATE_MAP.get(skull_strip_template) or skull_strip_template
+    template_name = TEMPLATE_MAP.get(template) or template
     # Template path
     template_dir = get_template(template_name)
 
-    gen_ref.inputs.fixed_image = str(template_dir / \
-        ('tpl-%s_space-MNI_res-01_T1w.nii.gz' % template_name))
+    gen_ref.inputs.fixed_image = str(
+        template_dir / ('tpl-%s_space-MNI_res-01_T1w.nii.gz' % template_name))
 
     mask_mni_tfm = pe.Node(
         ApplyTransforms(interpolation='MultiLabel', float=True),
@@ -325,9 +322,11 @@ generating a *preprocessed BOLD run in {tpl} space*.
             (gen_ref, bold_to_mni_transform, [('out_file', 'reference_image')]),
         ])
     elif template_out_grid == '1mm' or template_out_grid == '2mm':
-        mask_mni_tfm.inputs.reference_image = str(template_dir / \
+        mask_mni_tfm.inputs.reference_image = str(
+            template_dir /
             ('tpl-%s_space-MNI_res-%s_brainmask.nii.gz' % (template_name, template_out_grid[0])))
-        bold_to_mni_transform.inputs.reference_image = str(template_dir / \
+        bold_to_mni_transform.inputs.reference_image = str(
+            template_dir /
             ('tpl-%s_space-MNI_res-%s_T1w.nii.gz' % (template_name, template_out_grid[0])))
     else:
         mask_mni_tfm.inputs.reference_image = template_out_grid

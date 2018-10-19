@@ -9,7 +9,6 @@ Calculate BOLD confounds
 .. autofunction:: init_ica_aroma_wf
 
 """
-import os
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, fsl
 from nipype.interfaces.nilearn import SignalExtraction
@@ -349,7 +348,8 @@ def init_carpetplot_wf(mem_gb, metadata, name="bold_carpet_wf"):
     # Warp segmentation into EPI space
     resample_parc = pe.Node(ApplyTransforms(
         float=True,
-        input_image=str(get_template('MNI152NLin2009cAsym') / \
+        input_image=str(
+            get_template('MNI152NLin2009cAsym') /
             'tpl-MNI152NLin2009cAsym_space-MNI_res-01_label-carpet_atlas.nii.gz'),
         dimension=3, default_value=0, interpolation='MultiLabel'),
         name='resample_parc')
