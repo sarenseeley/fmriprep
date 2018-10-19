@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MNI_TEMPLATE="https://files.osf.io/v1/resources/fvuh8/providers/osfstorage/5bc91ec811fd9d001a9528d8"
-MNI_SHA256="50e6cd87d88594791b4cc7ab70a418f9c16f31a2978eea34d8fdcf2069937fe1"
+MNI_TEMPLATE="https://files.osf.io/v1/resources/fvuh8/providers/osfstorage/5bc984f8ccdb6b0018abb993"
+MNI_SHA256="9bb06ab27d45d21e7f8b2bc2ca27227f081ecb051bbd438a0bfbc56ddc089cac"
 ASYM_09C_TEMPLATE="https://files.osf.io/v1/resources/fvuh8/providers/osfstorage/5b0dbce20f461a000db8fa3d"
 ASYM_09C_SHA256="2851302474359c2c48995155aadb48b861e5dcf87aefda71af8010f671e8ed66"
 OASIS_TEMPLATE="https://files.osf.io/v1/resources/fvuh8/providers/osfstorage/584123a29ad5a1020913609d"
