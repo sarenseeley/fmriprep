@@ -321,13 +321,14 @@ generating a *preprocessed BOLD run in {tpl} space*.
             (gen_ref, mask_mni_tfm, [('out_file', 'reference_image')]),
             (gen_ref, bold_to_mni_transform, [('out_file', 'reference_image')]),
         ])
-    elif template_out_grid == '1mm' or template_out_grid == '2mm':
+    elif template_out_grid in ['1mm', '2mm']:
+        res = int(template_out_grid[0])
         mask_mni_tfm.inputs.reference_image = str(
             template_dir /
-            ('tpl-%s_space-MNI_res-%s_brainmask.nii.gz' % (template_name, template_out_grid[0])))
+            ('tpl-%s_space-MNI_res-%02d_brainmask.nii.gz' % (template_name, res)))
         bold_to_mni_transform.inputs.reference_image = str(
             template_dir /
-            ('tpl-%s_space-MNI_res-%s_T1w.nii.gz' % (template_name, template_out_grid[0])))
+            ('tpl-%s_space-MNI_res-%02d_T1w.nii.gz' % (template_name, res)))
     else:
         mask_mni_tfm.inputs.reference_image = template_out_grid
         bold_to_mni_transform.inputs.reference_image = template_out_grid
