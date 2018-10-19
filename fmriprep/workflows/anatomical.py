@@ -609,7 +609,7 @@ def init_skullstrip_ants_wf(skull_strip_template, debug, omp_nthreads,
             Reportlet visualizing quality of skull-stripping
 
     """
-    from niworkflows.data.getters import get_template, TEMPLATE_MAP
+    from niworkflows.data.getters import get_template, TEMPLATE_ALIASES
 
     if skull_strip_template not in ['OASIS', 'NKI']:
         raise ValueError("Unknown skull-stripping template; select from {OASIS, NKI}")
@@ -621,7 +621,7 @@ The T1w-reference was then skull-stripped using `antsBrainExtraction.sh`
 """.format(ants_ver=BrainExtraction().version or '<ver>', skullstrip_tpl=skull_strip_template)
 
     # Account for template aliases
-    template_name = TEMPLATE_MAP.get(skull_strip_template) or skull_strip_template
+    template_name = TEMPLATE_ALIASES.get(skull_strip_template, skull_strip_template)
     # Template path
     template_dir = get_template(template_name)
 

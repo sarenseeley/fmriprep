@@ -14,7 +14,7 @@ from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, freesurfer as fs
 from nipype.interfaces.fsl import Split as FSLSplit
 
-from niworkflows.data import get_template, TEMPLATE_MAP
+from niworkflows.data import get_template, TEMPLATE_ALIASES
 from niworkflows.interfaces.utils import GenerateSamplingReference
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 
@@ -260,7 +260,7 @@ generating a *preprocessed BOLD run in {tpl} space*.
     gen_ref = pe.Node(GenerateSamplingReference(), name='gen_ref',
                       mem_gb=0.3)  # 256x256x256 * 64 / 8 ~ 150MB)
     # Account for template aliases
-    template_name = TEMPLATE_MAP.get(template) or template
+    template_name = TEMPLATE_ALIASES.get(template, template)
     # Template path
     template_dir = get_template(template_name)
 
