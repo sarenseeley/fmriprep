@@ -78,6 +78,57 @@ def get_parser():
     g_bids.add_argument('-t', '--task-id', action='store',
                         help='select a specific task to be processed')
 
+    # Outputs
+    g_outputs = parser.add_argument_group(
+        'Prescribing outputs (templates, spaces, resolutions, etc.')
+    g_outputs.add_argument(
+        '--output-references', required=False, action='store', nargs='+',
+        choices=['T1w',  # Future options: boldreg, orig
+                 'MNI152Lin', 'MNI152NLin2009cAsym',
+                 'fsnative', 'fsaverage', 'fsaverage6', 'fsaverage5'],
+        default=['MNI152NLin2009cAsym', 'fsaverage5'],
+        help="""\
+reference (standardized when a template is selected) volume and surfaces \
+that the final functional series will be resampled to:
+  - T1w: subject anatomical volume
+  - MNI152*: various ICBM152 MNI template versions (e.g. MNI152Lin, MNI152NLin2009cAsym)
+  - fsnative: individual subject surface
+  - fsaverage*: FreeSurfer average meshes""")
+    g_outputs.add_argument(
+        '--template-resampling-grid', required=False, action='store', default='native',
+        help="""\
+Keyword ("native", "1mm", or "2mm") or path to an existing file.
+When outputs are normalized to MNI152* as requested with ``--output-references``, \
+allows to define a reference grid for the resampling of BOLD images in MNI \
+space. Keyword "native" will use the original BOLD grid. \
+Keywords "1mm" and "2mm" will use the corresponding isotropic template \
+resolutions. If a path is given, the grid of that image will be used. \
+It determines the field of view and resolution of the output images, \
+but is not used in normalization.""")
+    g_outputs.add_argument(
+        '--medial-surface-nan', required=False, action='store_true', default=False,
+        help='Replace medial wall values with NaNs on functional GIFTI files. Only '
+        'performed for GIFTI files mapped to a freesurfer subject (fsaverage or fsnative).')
+    # Deprecated options
+    g_outputs.add_argument(
+        '--output-grid-reference', required=False, action='store',
+        help='Deprecated after FMRIPREP 1.0.8. Please use --template-resampling-grid instead.')
+    g_outputs.add_argument(
+        '--output-space', required=False, action='store', nargs='*',
+        choices=['T1w', 'template', 'fsnative', 'fsaverage', 'fsaverage6', 'fsaverage5'],
+        help='volume and surface spaces to resample functional series into\n'
+             ' - T1w: subject anatomical volume\n'
+             ' - template: normalization target specified by --template\n'
+             ' - fsnative: individual subject surface\n'
+             ' - fsaverage*: FreeSurfer average meshes\n'
+             'this argument can be single value or a space delimited list,\n'
+             'for example: --output-space T1w fsnative'
+    )
+    g_outputs.add_argument(
+        '--template', required=False, action='store', choices=['MNI152NLin2009cAsym'],
+        help='volume template space (default: MNI152NLin2009cAsym)')
+
+    # Performance options
     g_perfm = parser.add_argument_group('Options to handle performance')
     g_perfm.add_argument('--debug', action='store_true', default=False,
                          help='run debug version of workflow')
@@ -123,47 +174,11 @@ def get_parser():
                         help='Degrees of freedom when registering BOLD to T1w images. '
                              '6 degrees (rotation and translation) are used by default.')
     g_conf.add_argument(
-        '--output-space', required=False, action='store',
-        choices=['T1w', 'MNI', 'template', 'fsnative', 'fsaverage', 'fsaverage6', 'fsaverage5'],
-        nargs='+', default=['MNI', 'fsaverage5'],
-        help="""\
-volume and surface spaces to resample functional series into
- - T1w: subject anatomical volume
- - MNI: spatial normalization using the target MNI template specified by --template
- - fsnative: individual subject surface
- - fsaverage*: FreeSurfer average meshes
- - template: option deprecated option in fMRIPrep 1.2.0 -
-     "template" is automatically
-     replaced with "MNI"
-
-this argument can be single value or a space delimited list,
-for example: --output-space T1w MNI fsnative""")
-    g_conf.add_argument(
         '--force-bbr', action='store_true', dest='use_bbr', default=None,
         help='Always use boundary-based registration (no goodness-of-fit checks)')
     g_conf.add_argument(
         '--force-no-bbr', action='store_false', dest='use_bbr', default=None,
         help='Do not use boundary-based registration (no goodness-of-fit checks)')
-    g_conf.add_argument(
-        '--template', required=False, action='store',
-        choices=['MNI152NLin2009cAsym'], default='MNI152NLin2009cAsym',
-        help='volume template space (default: MNI152NLin2009cAsym)')
-    g_conf.add_argument(
-        '--output-grid-reference', required=False, action='store',
-        help='Deprecated after FMRIPREP 1.0.8. Please use --template-resampling-grid instead.')
-    g_conf.add_argument(
-        '--template-resampling-grid', required=False, action='store', default='native',
-        help='Keyword ("native", "1mm", or "2mm") or path to an existing file. '
-             'Allows to define a reference grid for the resampling of BOLD images in template '
-             'space. Keyword "native" will use the original BOLD grid as reference. '
-             'Keywords "1mm" and "2mm" will use the corresponding isotropic template '
-             'resolutions. If a path is given, the grid of that image will be used. '
-             'It determines the field of view and resolution of the output images, '
-             'but is not used in normalization.')
-    g_conf.add_argument(
-        '--medial-surface-nan', required=False, action='store_true', default=False,
-        help='Replace medial wall values with NaNs on functional GIFTI files. Only '
-        'performed for GIFTI files mapped to a freesurfer subject (fsaverage or fsnative).')
 
     # ICA_AROMA options
     g_aroma = parser.add_argument_group('Specific options for running ICA_AROMA')
@@ -387,36 +402,45 @@ def build_workflow(opts, retval):
       * Run identifier: {uuid}.
     """.format
 
-    output_spaces = list(set(opts.output_space)) or []  # Deduplicate first
+    output_references = set(opts.output_references)  # Deduplicate first
 
-    if 'template' in output_spaces:
+    if opts.template:
         logger.warning(
-            'Option "template" for argument ``--output-space`` has been deprecated.'
-            ' Please use "MNI" instead.'
+            'Option "--template" has been deprecated in fMRIPrep 1.2.0, please '
+            'use --output-references.'
         )
-        output_spaces.remove('template')
-        output_spaces = list(set(output_spaces + ['MNI']))
+        output_references.add(opts.template)
 
+    if opts.output_space:
+        logger.warning(
+            'Option "--output-space" has been deprecated in fMRIPrep 1.2.0, please '
+            'use --output-references.'
+        )
+        for space in opts.output_space:
+            output_references.add(space if space != 'template'
+                                  else 'MNI152NLin2009cAsym')
+
+    any_mni = any([ref.startswith('MNI') for ref in output_references])
     # Validity of some inputs
     # ERROR check if use_aroma was specified, but the correct template was not
-    if opts.use_aroma and (opts.template != 'MNI152NLin2009cAsym' or
-                           'MNI' not in output_spaces):
-        output_spaces.append('MNI')
+    if opts.use_aroma and not any_mni:
+        output_references.append('MNI152NLin2009cAsym')
         logger.warning(
             'Option "--use-aroma" requires functional images to be resampled to MNI space. '
             'The argument "MNI" has been automatically added to the list of output '
-            'spaces (option "--output-space").'
+            'spaces (option "--output-references").'
         )
 
-    # Check output_space
-    if 'MNI' not in output_spaces and (opts.use_syn_sdc or opts.force_syn):
-        msg = ['SyN SDC correction requires T1 to MNI registration, but '
-               '"MNI" is not specified in "--output-space" arguments.',
-               'Option --use-syn will be cowardly dismissed.']
+    # Check output_references
+    if (opts.use_syn_sdc or opts.force_syn) and not any_mni:
+        msg = ['SyN SDC correction requires T1w to MNI registration,'
+               ' but no MNI reference was specified in ``--output-references``.',
+               ' Option ``--use-syn`` will be cowardly dismissed.']
         if opts.force_syn:
-            output_spaces.append('MNI')
-            msg[1] = (' Since --force-syn has been requested, "MNI" has been added to'
-                      ' the "--output-space" list.')
+            output_references.append('MNI152NLin2009cAsym')
+            msg[1] = (
+                ' Since ``--force-syn`` has been requested, "MNI152NLin2009cAsym"'
+                ' has been added to the ``--output-references`` list.')
         logger.warning(' '.join(msg))
 
     # Set up some instrumental utilities
@@ -547,8 +571,7 @@ def build_workflow(opts, retval):
         output_dir=output_dir,
         bids_dir=bids_dir,
         freesurfer=opts.run_reconall,
-        output_spaces=output_spaces,
-        template=opts.template,
+        output_references=output_references,
         medial_surface_nan=opts.medial_surface_nan,
         cifti_output=opts.cifti_output,
         template_out_grid=template_out_grid,

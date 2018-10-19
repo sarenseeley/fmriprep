@@ -33,7 +33,7 @@ from .util import init_bold_reference_wf
 DEFAULT_MEMORY_MIN_GB = 0.01
 
 
-def init_bold_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='bold_surf_wf'):
+def init_bold_surf_wf(mem_gb, output_references, medial_surface_nan, name='bold_surf_wf'):
     """
     This workflow samples functional images to FreeSurfer surfaces
 
@@ -48,18 +48,21 @@ def init_bold_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='bold_surf
 
         from fmriprep.workflows.bold import init_bold_surf_wf
         wf = init_bold_surf_wf(mem_gb=0.1,
-                               output_spaces=['T1w', 'fsnative',
-                                             'template', 'fsaverage5'],
+                               output_references=['fsnative', 'fsaverage5'],
                                medial_surface_nan=False)
 
     **Parameters**
 
-        output_spaces : list
-            List of output spaces functional images are to be resampled to
-            Target spaces beginning with ``fs`` will be selected for resampling,
-            such as ``fsaverage`` or related template spaces
-            If the list contains ``fsnative``, images will be resampled to the
-            individual subject's native surface
+        output_references : list
+            List of output references and templates that functional images are
+            to be resampled to.
+            Some parts of pipeline will only be instantiated for some output
+            references.
+
+            Valid references:
+                - fsnative
+                - fsaverage (or other pre-existing FreeSurfer templates)
+            Invalid references are dismissed.
         medial_surface_nan : bool
             Replace medial wall values with NaNs on functional GIFTI files
 
@@ -82,7 +85,7 @@ def init_bold_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='bold_surf
             BOLD series, resampled to FreeSurfer surfaces
 
     """
-    spaces = [space for space in output_spaces if space.startswith('fs')]
+    spaces = [space for space in output_references if space.startswith('fs')]
 
     workflow = Workflow(name=name)
 

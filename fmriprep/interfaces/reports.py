@@ -27,7 +27,7 @@ SUBJECT_TEMPLATE = """\t<ul class="elem-desc">
 \t\t<li>Structural images: {n_t1s:d} T1-weighted {t2w}</li>
 \t\t<li>Functional series: {n_bold:d}</li>
 {tasks}
-\t\t<li>Resampling targets: {output_spaces}
+\t\t<li>Spatial references (resampling targets): {output_references}
 \t\t<li>FreeSurfer reconstruction: {freesurfer_status}</li>
 \t</ul>
 """
@@ -38,7 +38,7 @@ FUNCTIONAL_TEMPLATE = """\t\t<h3 class="elem-title">Summary</h3>
 \t\t\t<li>Slice timing correction: {stc}</li>
 \t\t\t<li>Susceptibility distortion correction: {sdc}</li>
 \t\t\t<li>Registration: {registration}</li>
-\t\t\t<li>Functional series resampled to spaces: {output_spaces}</li>
+\t\t\t<li>Spatial references to which functional series were resampled to: {output_references}</li>
 \t\t\t<li>Confounds collected: {confounds}</li>
 \t\t</ul>
 """
@@ -76,8 +76,7 @@ class SubjectSummaryInputSpec(BaseInterfaceInputSpec):
     bold = InputMultiPath(traits.Either(File(exists=True),
                                         traits.List(File(exists=True))),
                           desc='BOLD functional series')
-    output_spaces = traits.List(desc='Target spaces')
-    template = traits.Enum('MNI152NLin2009cAsym', desc='Template space')
+    output_references = traits.List(desc='Spatial references')
 
 
 class SubjectSummaryOutputSpec(SummaryOutputSpec):
@@ -108,8 +107,7 @@ class SubjectSummary(SummaryInterface):
             else:
                 freesurfer_status = 'Run by fMRIPrep'
 
-        output_spaces = [self.inputs.template if space == 'MNI' else space
-                         for space in self.inputs.output_spaces]
+        output_references = self.inputs.output_references
 
         t2w_seg = ''
         if self.inputs.t2w:
@@ -136,7 +134,7 @@ class SubjectSummary(SummaryInterface):
                                        t2w=t2w_seg,
                                        n_bold=len(bold_series),
                                        tasks=tasks,
-                                       output_spaces=', '.join(output_spaces),
+                                       output_references=', '.join(output_references),
                                        freesurfer_status=freesurfer_status)
 
 
@@ -152,7 +150,7 @@ class FunctionalSummaryInputSpec(BaseInterfaceInputSpec):
     fallback = traits.Bool(desc='Boundary-based registration rejected')
     registration_dof = traits.Enum(6, 9, 12, desc='Registration degrees of freedom',
                                    mandatory=True)
-    output_spaces = traits.List(desc='Target spaces')
+    output_references = traits.List(desc='Target spaces')
     confounds_file = File(exists=True, desc='Confounds file')
 
 
@@ -184,7 +182,7 @@ class FunctionalSummary(SummaryInterface):
                 conflist = cfh.readline().strip('\n').strip()
         return FUNCTIONAL_TEMPLATE.format(
             pedir=pedir, stc=stc, sdc=self.inputs.distortion_correction, registration=reg,
-            output_spaces=', '.join(self.inputs.output_spaces),
+            output_references=', '.join(self.inputs.output_references),
             confounds=re.sub(r'[\t ]+', ', ', conflist))
 
 

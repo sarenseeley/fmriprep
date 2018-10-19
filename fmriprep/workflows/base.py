@@ -36,7 +36,7 @@ from .bold import init_func_preproc_wf
 def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids_dir,
                      ignore, debug, low_mem, anat_only, longitudinal, t2s_coreg,
                      omp_nthreads, skull_strip_template, skull_strip_fixed_seed,
-                     freesurfer, output_spaces, template, medial_surface_nan, cifti_output, hires,
+                     freesurfer, output_references, medial_surface_nan, cifti_output, hires,
                      use_bbr, bold2t1w_dof, fmap_bspline, fmap_demean, use_syn, force_syn,
                      use_aroma, ignore_aroma_err, aroma_melodic_dim, template_out_grid):
     """
@@ -69,9 +69,9 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
                               skull_strip_template='OASIS',
                               skull_strip_fixed_seed=False,
                               freesurfer=True,
-                              output_spaces=['T1w', 'MNI',
-                                             'fsnative', 'fsaverage5'],
-                              template='MNI152NLin2009cAsym',
+                              output_references=[
+                                  'T1w', 'MNI152NLin2009cAsym',
+                                  'fsnative', 'fsaverage5'],
                               medial_surface_nan=False,
                               cifti_output=False,
                               hires=True,
@@ -123,18 +123,17 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
             run-to-run replicability when used with --omp-nthreads 1
         freesurfer : bool
             Enable FreeSurfer surface reconstruction (may increase runtime)
-        output_spaces : list
-            List of output spaces functional images are to be resampled to.
-            Some parts of pipeline will only be instantiated for some output spaces.
+        output_references : list
+            List of output references and templates that functional images are
+            to be resampled to.
+            Some parts of pipeline will only be instantiated for some output
+            references.
 
-            Valid spaces:
-
-             - T1w
-             - MNI
-             - fsnative
-             - fsaverage (or other pre-existing FreeSurfer templates)
-        template : str
-            Name of template targeted by ``template`` output space
+            Valid references:
+                - T1w
+                - MNI152* (MNI152{Lin,NLin2009cAsym})
+                - fsnative
+                - fsaverage (or other pre-existing FreeSurfer templates)
         medial_surface_nan : bool
             Replace medial wall values with NaNs on functional GIFTI files
         cifti_output : bool
@@ -172,7 +171,7 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
             BIDSFreeSurferDir(
                 derivatives=output_dir,
                 freesurfer_home=os.getenv('FREESURFER_HOME'),
-                spaces=output_spaces),
+                spaces=output_references),
             name='fsdir', run_without_submitting=True)
 
     reportlets_dir = os.path.join(work_dir, 'reportlets')
@@ -193,8 +192,7 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
                                                    skull_strip_template=skull_strip_template,
                                                    skull_strip_fixed_seed=skull_strip_fixed_seed,
                                                    freesurfer=freesurfer,
-                                                   output_spaces=output_spaces,
-                                                   template=template,
+                                                   output_references=output_references,
                                                    medial_surface_nan=medial_surface_nan,
                                                    cifti_output=cifti_output,
                                                    hires=hires,
@@ -226,7 +224,7 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
 def init_single_subject_wf(subject_id, task_id, name, reportlets_dir, output_dir, bids_dir,
                            ignore, debug, low_mem, anat_only, longitudinal, t2s_coreg,
                            omp_nthreads, skull_strip_template, skull_strip_fixed_seed,
-                           freesurfer, output_spaces, template, medial_surface_nan,
+                           freesurfer, output_references, medial_surface_nan,
                            cifti_output, hires, use_bbr, bold2t1w_dof, fmap_bspline, fmap_demean,
                            use_syn, force_syn, template_out_grid,
                            use_aroma, aroma_melodic_dim, ignore_aroma_err):
@@ -261,9 +259,9 @@ def init_single_subject_wf(subject_id, task_id, name, reportlets_dir, output_dir
                                     skull_strip_template='OASIS',
                                     skull_strip_fixed_seed=False,
                                     freesurfer=True,
-                                    template='MNI152NLin2009cAsym',
-                                    output_spaces=['T1w', 'MNI',
-                                                   'fsnative', 'fsaverage5'],
+                                    output_references=[
+                                        'T1w', 'MNI152NLin2009cAsym',
+                                        'fsnative', 'fsaverage5'],
                                     medial_surface_nan=False,
                                     cifti_output=False,
                                     hires=True,
@@ -314,18 +312,17 @@ def init_single_subject_wf(subject_id, task_id, name, reportlets_dir, output_dir
             Root directory of BIDS dataset
         freesurfer : bool
             Enable FreeSurfer surface reconstruction (may increase runtime)
-        output_spaces : list
-            List of output spaces functional images are to be resampled to.
-            Some parts of pipeline will only be instantiated for some output spaces.
+        output_references : list
+            List of output references and templates that functional images are
+            to be resampled to.
+            Some parts of pipeline will only be instantiated for some output
+            references.
 
-            Valid spaces:
-
-             - T1w
-             - template
-             - fsnative
-             - fsaverage (or other pre-existing FreeSurfer templates)
-        template : str
-            Name of template targeted by ``template`` output space
+            Valid references:
+                - T1w
+                - MNI152* (MNI152{Lin,NLin2009cAsym})
+                - fsnative
+                - fsaverage (or other pre-existing FreeSurfer templates)
         medial_surface_nan : bool
             Replace medial wall values with NaNs on functional GIFTI files
         cifti_output : bool
@@ -412,7 +409,7 @@ to workflows in *fMRIPrep*'s documentation]\
 
     bids_info = pe.Node(BIDSInfo(), name='bids_info', run_without_submitting=True)
 
-    summary = pe.Node(SubjectSummary(output_spaces=output_spaces, template=template),
+    summary = pe.Node(SubjectSummary(output_references=output_references),
                       name='summary', run_without_submitting=True)
 
     about = pe.Node(AboutSummary(version=__version__,
@@ -433,8 +430,7 @@ to workflows in *fMRIPrep*'s documentation]\
     anat_preproc_wf = init_anat_preproc_wf(name="anat_preproc_wf",
                                            skull_strip_template=skull_strip_template,
                                            skull_strip_fixed_seed=skull_strip_fixed_seed,
-                                           output_spaces=output_spaces,
-                                           template=template,
+                                           output_references=output_references,
                                            debug=debug,
                                            longitudinal=longitudinal,
                                            omp_nthreads=omp_nthreads,
@@ -475,8 +471,7 @@ to workflows in *fMRIPrep*'s documentation]\
                                                t2s_coreg=t2s_coreg,
                                                bold2t1w_dof=bold2t1w_dof,
                                                reportlets_dir=reportlets_dir,
-                                               output_spaces=output_spaces,
-                                               template=template,
+                                               output_references=output_references,
                                                medial_surface_nan=medial_surface_nan,
                                                cifti_output=cifti_output,
                                                output_dir=output_dir,

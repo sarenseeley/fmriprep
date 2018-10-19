@@ -48,12 +48,12 @@ from ..interfaces import (
 )
 from ..utils.misc import fix_multi_T1w_source_name, add_suffix
 from ..interfaces.freesurfer import (
-        PatchedLTAConvert as LTAConvert,
-        PatchedRobustRegister as RobustRegister)
+    PatchedLTAConvert as LTAConvert,
+    PatchedRobustRegister as RobustRegister)
 
 
 #  pylint: disable=R0914
-def init_anat_preproc_wf(skull_strip_template, output_spaces, template, debug,
+def init_anat_preproc_wf(skull_strip_template, output_references, debug,
                          freesurfer, longitudinal, omp_nthreads, hires, reportlets_dir,
                          output_dir, num_t1w,
                          skull_strip_fixed_seed=False, name='anat_preproc_wf'):
@@ -76,9 +76,9 @@ def init_anat_preproc_wf(skull_strip_template, output_spaces, template, debug,
         wf = init_anat_preproc_wf(omp_nthreads=1,
                                   reportlets_dir='.',
                                   output_dir='.',
-                                  template='MNI152NLin2009cAsym',
-                                  output_spaces=['T1w', 'MNI',
-                                                 'fsnative', 'fsaverage5'],
+                                  output_references=[
+                                      'T1w', 'MNI152NLin2009cAsym',
+                                      'fsnative', 'fsaverage5'],
                                   skull_strip_template='OASIS',
                                   freesurfer=True,
                                   longitudinal=False,
@@ -90,19 +90,17 @@ def init_anat_preproc_wf(skull_strip_template, output_spaces, template, debug,
 
         skull_strip_template : str
             Name of ANTs skull-stripping template ('OASIS' or 'NKI')
-        output_spaces : list
-            List of output spaces functional images are to be resampled to.
+        output_references : list
+            List of output references and templates that functional images are
+            to be resampled to.
+            Some parts of pipeline will only be instantiated for some output
+            references.
 
-            Some pipeline components will only be instantiated for some output spaces.
-
-            Valid spaces:
-
-              - T1w
-              - template
-              - fsnative
-              - fsaverage (or other pre-existing FreeSurfer templates)
-        template : str
-            Name of template targeted by ``template`` output space
+            Valid references:
+                - T1w
+                - MNI152* (MNI152{Lin,NLin2009cAsym})
+                - fsnative
+                - fsaverage (or other pre-existing FreeSurfer templates)
         debug : bool
             Enable debugging outputs
         freesurfer : bool
@@ -330,7 +328,8 @@ and used as T1w-reference throughout the workflow.
         name='mni_tpms'
     )
 
-    if 'MNI' in output_spaces:
+    any_mni = any([ref.startswith('MNI152') for ref in output_references])
+    if any_mni:
         template_id = 'MNI152NLin2009cAsym'
         ref_img = str(nid.get_template(template_id) /
                       ('tpl-%s_space-MNI_res-01_T1w.nii.gz' % template_id))
@@ -362,7 +361,7 @@ and used as T1w-reference throughout the workflow.
     seg2msks = pe.Node(niu.Function(function=_seg2msks), name='seg2msks')
     seg_rpt = pe.Node(ROIsPlot(colors=['r', 'magenta', 'b', 'g']), name='seg_rpt')
     anat_reports_wf = init_anat_reports_wf(
-        reportlets_dir=reportlets_dir, output_spaces=output_spaces, template=template,
+        reportlets_dir=reportlets_dir, output_references=output_references,
         freesurfer=freesurfer)
     workflow.connect([
         (inputnode, anat_reports_wf, [
@@ -382,14 +381,13 @@ and used as T1w-reference throughout the workflow.
             (surface_recon_wf, anat_reports_wf, [
                 ('outputnode.out_report', 'inputnode.recon_report')]),
         ])
-    if 'MNI' in output_spaces:
+    if any_mni:
         workflow.connect([
             (t1_2_mni, anat_reports_wf, [('out_report', 'inputnode.t1_2_mni_report')]),
         ])
 
     anat_derivatives_wf = init_anat_derivatives_wf(output_dir=output_dir,
-                                                   output_spaces=output_spaces,
-                                                   template=template,
+                                                   template='MNI152NLin2009cAsym',
                                                    freesurfer=freesurfer)
 
     workflow.connect([
@@ -1148,8 +1146,8 @@ def init_segs_to_native_wf(name='segs_to_native', segmentation='aseg'):
     return workflow
 
 
-def init_anat_reports_wf(reportlets_dir, output_spaces,
-                         template, freesurfer, name='anat_reports_wf'):
+def init_anat_reports_wf(reportlets_dir, output_references,
+                         freesurfer, name='anat_reports_wf'):
     """
     Set up a battery of datasinks to store reports in the right location
     """
@@ -1189,7 +1187,7 @@ def init_anat_reports_wf(reportlets_dir, output_spaces,
             (inputnode, ds_recon_report, [('source_file', 'source_file'),
                                           ('recon_report', 'in_file')])
         ])
-    if 'MNI' in output_spaces:
+    if 'MNI' in output_references:
         workflow.connect([
             (inputnode, ds_t1_2_mni_report, [('source_file', 'source_file'),
                                              ('t1_2_mni_report', 'in_file')])
@@ -1198,7 +1196,7 @@ def init_anat_reports_wf(reportlets_dir, output_spaces,
     return workflow
 
 
-def init_anat_derivatives_wf(output_dir, output_spaces, template, freesurfer,
+def init_anat_derivatives_wf(output_dir, template, freesurfer,
                              name='anat_derivatives_wf'):
     """
     Set up a battery of datasinks to store derivatives in the right location
@@ -1322,7 +1320,7 @@ def init_anat_derivatives_wf(output_dir, output_spaces, template, freesurfer,
             (t1_name, ds_t1_fsaseg, [('out', 'source_file')]),
             (t1_name, ds_t1_fsparc, [('out', 'source_file')]),
         ])
-    if 'MNI' in output_spaces:
+    if template.startswith('MNI152'):
         workflow.connect([
             (inputnode, ds_t1_mni_warp, [('t1_2_mni_forward_transform', 'in_file')]),
             (inputnode, ds_t1_mni_inv_warp, [('t1_2_mni_reverse_transform', 'in_file')]),

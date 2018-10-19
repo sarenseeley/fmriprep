@@ -48,7 +48,7 @@ LOGGER = logging.getLogger('nipype.workflow')
 
 def init_func_preproc_wf(bold_file, ignore, freesurfer,
                          use_bbr, t2s_coreg, bold2t1w_dof, reportlets_dir,
-                         output_spaces, template, output_dir, omp_nthreads,
+                         output_references, output_dir, omp_nthreads,
                          fmap_bspline, fmap_demean, use_syn, force_syn,
                          use_aroma, ignore_aroma_err, aroma_melodic_dim,
                          medial_surface_nan, cifti_output,
@@ -68,9 +68,9 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
                                   freesurfer=True,
                                   reportlets_dir='.',
                                   output_dir='.',
-                                  template='MNI152NLin2009cAsym',
-                                  output_spaces=['T1w', 'fsnative',
-                                                 'MNI', 'fsaverage5'],
+                                  output_references=[
+                                      'T1w', 'MNI152NLin2009cAsym',
+                                      'fsnative', 'fsaverage5'],
                                   debug=False,
                                   use_bbr=True,
                                   t2s_coreg=False,
@@ -106,18 +106,17 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
             Degrees-of-freedom for BOLD-T1w registration
         reportlets_dir : str
             Directory in which to save reportlets
-        output_spaces : list
-            List of output spaces functional images are to be resampled to.
-            Some parts of pipeline will only be instantiated for some output spaces.
+        output_references : list
+            List of output references and templates that functional images are
+            to be resampled to.
+            Some parts of pipeline will only be instantiated for some output
+            references.
 
-            Valid spaces:
-
+            Valid references:
                 - T1w
-                - template
+                - MNI152* (MNI152{Lin,NLin2009cAsym})
                 - fsnative
                 - fsaverage (or other pre-existing FreeSurfer templates)
-        template : str
-            Name of template targeted by ``template`` output space
         output_dir : str
             Directory in which to save derivatives
         omp_nthreads : int
@@ -226,6 +225,9 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
     """
     from ..fieldmap.base import init_sdc_wf  # Avoid circular dependency (#1066)
 
+    any_mni = any([ref.startswith('MNI152') for ref in output_references])
+    template = 'MNI152Lin' if 'MNI152Lin' in output_references \
+        else 'MNI152NLin2009cAsym'
     ref_file = bold_file
     mem_gb = {'filesize': 1, 'resampled': 1, 'largemem': 1}
     bold_tlen = 10
@@ -358,7 +360,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     boldbuffer = pe.Node(niu.IdentityInterface(fields=['bold_file']), name='boldbuffer')
 
     summary = pe.Node(
-        FunctionalSummary(output_spaces=output_spaces,
+        FunctionalSummary(output_references=output_references,
                           slice_timing=run_stc,
                           registration='FreeSurfer' if freesurfer else 'FSL',
                           registration_dof=bold2t1w_dof,
@@ -366,8 +368,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         name='summary', mem_gb=DEFAULT_MEMORY_MIN_GB, run_without_submitting=True)
 
     func_derivatives_wf = init_func_derivatives_wf(output_dir=output_dir,
-                                                   output_spaces=output_spaces,
-                                                   template=template,
+                                                   output_references=output_references,
                                                    freesurfer=freesurfer,
                                                    use_aroma=use_aroma,
                                                    cifti_output=cifti_output)
@@ -627,7 +628,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ])
 
     # Map final BOLD mask into T1w space (if required)
-    if 'T1w' in output_spaces:
+    if 'T1w' in output_references:
         from niworkflows.interfaces.fixes import (
             FixHeaderApplyTransforms as ApplyTransforms
         )
@@ -647,7 +648,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('output_image', 'bold_mask_t1')]),
         ])
 
-    if 'MNI' in output_spaces:
+    if any_mni:
         # Apply transforms in 1 shot
         # Only use uncompressed output if AROMA is to be run
         bold_mni_trans_wf = init_bold_mni_trans_wf(
@@ -742,10 +743,10 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ])
 
     # SURFACES ##################################################################################
-    if freesurfer and any(space.startswith('fs') for space in output_spaces):
+    if freesurfer and any(space.startswith('fs') for space in output_references):
         LOGGER.log(25, 'Creating BOLD surface-sampling workflow.')
         bold_surf_wf = init_bold_surf_wf(mem_gb=mem_gb['resampled'],
-                                         output_spaces=output_spaces,
+                                         output_references=output_references,
                                          medial_surface_nan=medial_surface_nan,
                                          name='bold_surf_wf')
         workflow.connect([
@@ -759,7 +760,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])
 
         # CIFTI output
-        if cifti_output and 'MNI' in output_spaces:
+        if cifti_output and 'MNI' in output_references:
             bold_surf_wf.__desc__ += """\
 *Grayordinates* files [@hcppipelines], which combine surface-sampled
 data and volume-sampled data, were also generated.
@@ -806,7 +807,7 @@ data and volume-sampled data, were also generated.
     return workflow
 
 
-def init_func_derivatives_wf(output_dir, output_spaces, template, freesurfer,
+def init_func_derivatives_wf(output_dir, output_references, freesurfer,
                              use_aroma, cifti_output, name='func_derivatives_wf'):
     """
     Set up a battery of datasinks to store derivatives in the right location
@@ -836,7 +837,7 @@ def init_func_derivatives_wf(output_dir, output_spaces, template, freesurfer,
     ])
 
     # Resample to T1w space
-    if 'T1w' in output_spaces:
+    if 'T1w' in output_references:
         ds_bold_t1 = pe.Node(DerivativesDataSink(
             base_directory=output_dir, suffix=suffix_fmt('T1w', 'preproc'), compress=True),
             name='ds_bold_t1', run_without_submitting=True,
@@ -859,8 +860,8 @@ def init_func_derivatives_wf(output_dir, output_spaces, template, freesurfer,
                                           ('bold_mask_t1', 'in_file')]),
         ])
 
-    # Resample to template (default: MNI)
-    if 'MNI' in output_spaces:
+    # Resample to MNI
+    if any_mni:
         ds_bold_mni = pe.Node(DerivativesDataSink(
             base_directory=output_dir, suffix=suffix_fmt(template, 'preproc'), compress=True),
             name='ds_bold_mni', run_without_submitting=True,
@@ -900,7 +901,7 @@ def init_func_derivatives_wf(output_dir, output_spaces, template, freesurfer,
         ])
 
     # fsaverage space
-    if freesurfer and any(space.startswith('fs') for space in output_spaces):
+    if freesurfer and any(space.startswith('fs') for space in output_references):
         name_surfs = pe.MapNode(GiftiNameSource(
             pattern=r'(?P<LR>[lr])h.(?P<space>\w+).gii', template='space-{space}.{LR}.func'),
             iterfield='in_file', name='name_surfs', mem_gb=DEFAULT_MEMORY_MIN_GB,
@@ -918,7 +919,7 @@ def init_func_derivatives_wf(output_dir, output_spaces, template, freesurfer,
         ])
 
         # CIFTI output
-        if cifti_output and 'MNI' in output_spaces:
+        if cifti_output and 'MNI' in output_references:
             name_cifti = pe.MapNode(
                 CiftiNameSource(), iterfield=['variant'], name='name_cifti',
                 mem_gb=DEFAULT_MEMORY_MIN_GB, run_without_submitting=True)

@@ -31,9 +31,9 @@ is presented below:
                                 bids_dir='.',
                                 skull_strip_template='OASIS',
                                 skull_strip_fixed_seed=False,
-                                template='MNI152NLin2009cAsym',
-                                output_spaces=['T1w', 'fsnative',
-                                              'MNI', 'fsaverage5'],
+                                output_references=[
+                                    'T1w', 'MNI152NLin2009cAsym',
+                                    'fsnative', 'fsaverage5'],
                                 medial_surface_nan=False,
                                 cifti_output=False,
                                 ignore=[],
@@ -65,9 +65,9 @@ T1w/T2w preprocessing
     wf = init_anat_preproc_wf(omp_nthreads=1,
                               reportlets_dir='.',
                               output_dir='.',
-                              template='MNI152NLin2009cAsym',
-                              output_spaces=['T1w', 'fsnative',
-                                             'MNI', 'fsaverage5'],
+                              output_references=[
+                                  'T1w', 'MNI152NLin2009cAsym',
+                                  'fsnative', 'fsaverage5'],
                               skull_strip_template='OASIS',
                               skull_strip_fixed_seed=False,
                               freesurfer=True,
@@ -254,9 +254,9 @@ BOLD preprocessing
                               freesurfer=True,
                               reportlets_dir='.',
                               output_dir='.',
-                              template='MNI152NLin2009cAsym',
-                              output_spaces=['T1w', 'fsnative',
-                                             'MNI', 'fsaverage5'],
+                              output_references=[
+                                  'T1w', 'MNI152NLin2009cAsym',
+                                  'fsnative', 'fsaverage5'],
                               medial_surface_nan=False,
                               cifti_output=False,
                               debug=False,
@@ -515,8 +515,7 @@ EPI sampled to FreeSurfer surfaces
     from fmriprep.workflows.bold import init_bold_surf_wf
     wf = init_bold_surf_wf(
         mem_gb=1,
-        output_spaces=['T1w', 'fsnative',
-                       'MNI', 'fsaverage5'],
+        output_references=['fsnative', 'fsaverage5'],
         medial_surface_nan=False)
 
 If FreeSurfer processing is enabled, the motion-corrected functional series
