@@ -30,7 +30,6 @@ from ...interfaces.freesurfer import (
     PatchedConcatenateLTA as ConcatenateLTA,
     PatchedLTAConvert as LTAConvert
 )
-from ..anatomical import TEMPLATE_MAP
 
 from .util import init_bold_reference_wf
 
@@ -263,8 +262,13 @@ generating a *preprocessed BOLD run in {tpl} space*.
 
     gen_ref = pe.Node(GenerateSamplingReference(), name='gen_ref',
                       mem_gb=0.3)  # 256x256x256 * 64 / 8 ~ 150MB)
-    template_str = TEMPLATE_MAP[template]
-    gen_ref.inputs.fixed_image = op.join(nid.get_dataset(template_str), '1mm_T1.nii.gz')
+    # Account for template aliases
+    template_name = TEMPLATE_MAP.get(skull_strip_template) or skull_strip_template
+    # Template path
+    template_dir = get_template(template_name)
+
+    gen_ref.inputs.fixed_image = str(template_dir / \
+        ('tpl-%s_space-MNI_res-01_T1w.nii.gz' % template_name))
 
     mask_mni_tfm = pe.Node(
         ApplyTransforms(interpolation='MultiLabel', float=True),
@@ -321,10 +325,10 @@ generating a *preprocessed BOLD run in {tpl} space*.
             (gen_ref, bold_to_mni_transform, [('out_file', 'reference_image')]),
         ])
     elif template_out_grid == '1mm' or template_out_grid == '2mm':
-        mask_mni_tfm.inputs.reference_image = op.join(
-            nid.get_dataset(template_str), '%s_brainmask.nii.gz' % template_out_grid)
-        bold_to_mni_transform.inputs.reference_image = op.join(
-            nid.get_dataset(template_str), '%s_T1.nii.gz' % template_out_grid)
+        mask_mni_tfm.inputs.reference_image = str(template_dir / \
+            ('tpl-%s_space-MNI_res-%s_brainmask.nii.gz' % (template_name, template_out_grid[0])))
+        bold_to_mni_transform.inputs.reference_image = str(template_dir / \
+            ('tpl-%s_space-MNI_res-%s_T1w.nii.gz' % (template_name, template_out_grid[0])))
     else:
         mask_mni_tfm.inputs.reference_image = template_out_grid
         bold_to_mni_transform.inputs.reference_image = template_out_grid
