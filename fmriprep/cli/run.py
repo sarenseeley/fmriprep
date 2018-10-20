@@ -402,8 +402,8 @@ def build_workflow(opts, retval):
       * Run identifier: {uuid}.
     """.format
 
+    # Handle spatial references for outputs
     output_references = set(opts.output_references)  # Deduplicate first
-
     if opts.template:
         logger.warning(
             'Option "--template" has been deprecated in fMRIPrep 1.2.0, please '
@@ -419,6 +419,7 @@ def build_workflow(opts, retval):
         for space in opts.output_space:
             output_references.add(space if space != 'template'
                                   else 'MNI152NLin2009cAsym')
+    output_references = list(output_references)
 
     any_mni = any([ref.startswith('MNI') for ref in output_references])
     # Validity of some inputs

@@ -225,7 +225,6 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
     """
     from ..fieldmap.base import init_sdc_wf  # Avoid circular dependency (#1066)
 
-    any_mni = any([ref.startswith('MNI152') for ref in output_references])
     template = 'MNI152Lin' if 'MNI152Lin' in output_references \
         else 'MNI152NLin2009cAsym'
     ref_file = bold_file
@@ -371,7 +370,8 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                                                    output_references=output_references,
                                                    freesurfer=freesurfer,
                                                    use_aroma=use_aroma,
-                                                   cifti_output=cifti_output)
+                                                   cifti_output=cifti_output,
+                                                   template=template)
 
     workflow.connect([
         (inputnode, func_derivatives_wf, [('bold_file', 'inputnode.source_file')]),
@@ -648,7 +648,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 ('output_image', 'bold_mask_t1')]),
         ])
 
-    if any_mni:
+    if any([ref.startswith('MNI152') for ref in output_references]):
         # Apply transforms in 1 shot
         # Only use uncompressed output if AROMA is to be run
         bold_mni_trans_wf = init_bold_mni_trans_wf(
@@ -808,7 +808,8 @@ data and volume-sampled data, were also generated.
 
 
 def init_func_derivatives_wf(output_dir, output_references, freesurfer,
-                             use_aroma, cifti_output, name='func_derivatives_wf'):
+                             use_aroma, cifti_output, template=None,
+                             name='func_derivatives_wf'):
     """
     Set up a battery of datasinks to store derivatives in the right location
     """
@@ -861,7 +862,7 @@ def init_func_derivatives_wf(output_dir, output_references, freesurfer,
         ])
 
     # Resample to MNI
-    if any_mni:
+    if template:
         ds_bold_mni = pe.Node(DerivativesDataSink(
             base_directory=output_dir, suffix=suffix_fmt(template, 'preproc'), compress=True),
             name='ds_bold_mni', run_without_submitting=True,

@@ -1187,7 +1187,7 @@ def init_anat_reports_wf(reportlets_dir, output_references,
             (inputnode, ds_recon_report, [('source_file', 'source_file'),
                                           ('recon_report', 'in_file')])
         ])
-    if 'MNI' in output_references:
+    if any([ref.startswith('MNI152') for ref in output_references]):
         workflow.connect([
             (inputnode, ds_t1_2_mni_report, [('source_file', 'source_file'),
                                              ('t1_2_mni_report', 'in_file')])
