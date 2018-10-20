@@ -760,7 +760,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
         ])
 
         # CIFTI output
-        if cifti_output and 'MNI' in output_references:
+        if cifti_output and any([ref.startswith('MNI') for ref in output_references]):
             bold_surf_wf.__desc__ += """\
 *Grayordinates* files [@hcppipelines], which combine surface-sampled
 data and volume-sampled data, were also generated.
@@ -920,7 +920,7 @@ def init_func_derivatives_wf(output_dir, output_references, freesurfer,
         ])
 
         # CIFTI output
-        if cifti_output and 'MNI' in output_references:
+        if cifti_output and any([ref.startswith('MNI') for ref in output_references]):
             name_cifti = pe.MapNode(
                 CiftiNameSource(), iterfield=['variant'], name='name_cifti',
                 mem_gb=DEFAULT_MEMORY_MIN_GB, run_without_submitting=True)
