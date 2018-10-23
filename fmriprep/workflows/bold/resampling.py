@@ -56,13 +56,12 @@ def init_bold_surf_wf(mem_gb, output_references, medial_surface_nan, name='bold_
         output_references : list
             List of output references and templates that functional images are
             to be resampled to.
-            Some parts of pipeline will only be instantiated for some output
-            references.
-
+            Only valid references will enable instatiation of corresponding
+            parts of the pipeline (i.e. invalid references are dismissed).
             Valid references:
                 - fsnative
                 - fsaverage (or other pre-existing FreeSurfer templates)
-            Invalid references are dismissed.
+
         medial_surface_nan : bool
             Replace medial wall values with NaNs on functional GIFTI files
 

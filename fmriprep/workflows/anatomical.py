@@ -95,12 +95,12 @@ def init_anat_preproc_wf(skull_strip_template, output_references, debug,
             to be resampled to.
             Some parts of pipeline will only be instantiated for some output
             references.
-
             Valid references:
                 - T1w
                 - MNI152* (MNI152{Lin,NLin2009cAsym})
                 - fsnative
                 - fsaverage (or other pre-existing FreeSurfer templates)
+
         debug : bool
             Enable debugging outputs
         freesurfer : bool

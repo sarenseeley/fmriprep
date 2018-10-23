@@ -128,12 +128,12 @@ def init_fmriprep_wf(subject_list, task_id, run_uuid, work_dir, output_dir, bids
             to be resampled to.
             Some parts of pipeline will only be instantiated for some output
             references.
-
             Valid references:
                 - T1w
                 - MNI152* (MNI152{Lin,NLin2009cAsym})
                 - fsnative
                 - fsaverage (or other pre-existing FreeSurfer templates)
+
         medial_surface_nan : bool
             Replace medial wall values with NaNs on functional GIFTI files
         cifti_output : bool
@@ -317,12 +317,12 @@ def init_single_subject_wf(subject_id, task_id, name, reportlets_dir, output_dir
             to be resampled to.
             Some parts of pipeline will only be instantiated for some output
             references.
-
             Valid references:
                 - T1w
                 - MNI152* (MNI152{Lin,NLin2009cAsym})
                 - fsnative
                 - fsaverage (or other pre-existing FreeSurfer templates)
+
         medial_surface_nan : bool
             Replace medial wall values with NaNs on functional GIFTI files
         cifti_output : bool
