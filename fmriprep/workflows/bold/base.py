@@ -111,12 +111,9 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
             to be resampled to.
             Some parts of pipeline will only be instantiated for some output
             references.
-            Valid references:
-                - T1w
-                - MNI152* (MNI152{Lin,NLin2009cAsym})
-                - fsnative
-                - fsaverage (or other pre-existing FreeSurfer templates)
-
+            Valid references: ``T1w``, MNI152* (``MNI152{Lin,NLin2009cAsym}``).
+            ``fsnative``, ``fsaverage`` (or other pre-existing FreeSurfer
+            templates).
         output_dir : str
             Directory in which to save derivatives
         omp_nthreads : int

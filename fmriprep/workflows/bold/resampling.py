@@ -58,10 +58,8 @@ def init_bold_surf_wf(mem_gb, output_references, medial_surface_nan, name='bold_
             to be resampled to.
             Only valid references will enable instatiation of corresponding
             parts of the pipeline (i.e. invalid references are dismissed).
-            Valid references:
-                - fsnative
-                - fsaverage (or other pre-existing FreeSurfer templates)
-
+            Valid references: ``fsnative``, ``fsaverage`` (or other pre-existing
+            FreeSurfer templates)
         medial_surface_nan : bool
             Replace medial wall values with NaNs on functional GIFTI files
 
