@@ -419,7 +419,7 @@ def build_workflow(opts, retval):
         for space in opts.output_space:
             output_references.add(space if space != 'template'
                                   else 'MNI152NLin2009cAsym')
-    output_references = list(output_references)
+    output_references = sorted([out for out in output_references])
 
     any_mni = any([ref.startswith('MNI') for ref in output_references])
     # Validity of some inputs
