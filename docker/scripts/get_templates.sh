@@ -10,6 +10,8 @@ NKI_TEMPLATE="https://files.osf.io/v1/resources/fvuh8/providers/osfstorage/5bc3f
 NKI_SHA256="9c08713d067bcf13baa61b01a9495e526b55d1f148d951da01e082679f076fa9"
 OASIS_DKT31_TEMPLATE="https://files.osf.io/v1/resources/fvuh8/providers/osfstorage/5b16f17aeca4a80012bd7542"
 OASIS_DKT31_SHA256="623fa7141712b1a7263331dba16eb069a4443e9640f52556c89d461611478145"
+EPI_TEMPLATE="https://files.osf.io/v1/resources/fvuh8/providers/osfstorage/5bc12155ac011000176bff82"
+EPI_SHA256="fcd6980ef98c9d7622c6dc2a7747ff51ba3909d98e2a740df9a8265d50920d1b"
 
 
 GET(){
@@ -37,4 +39,6 @@ echo "Getting NKI template"
 GET "$NKI_TEMPLATE" "$NKI_SHA256"
 echo "Getting OASIS DKT31 template"
 GET "$OASIS_DKT31_TEMPLATE" "$OASIS_DKT31_SHA256"
+echo "Getting fMRIPrep's BOLDref template"
+GET "$EPI_TEMPLATE" "$EPI_SHA256"
 echo "Done!"

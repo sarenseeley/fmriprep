@@ -98,7 +98,7 @@ REQUIRES = [
     'pybids==0.6.5',
     'nitime',
     'nipype>=1.1.3',
-    'niworkflows>=0.4.4',
+    'niworkflows==0.4.4',
     'statsmodels',
     'seaborn',
     'indexed_gzip>=0.8.2',
@@ -109,7 +109,7 @@ REQUIRES = [
 
 LINKS_REQUIRES = [
     'git+https://github.com/oesteban/niworkflows.git'
-    '@f00586dc99514fe9a5268e2e8de5f18e980fedb4#egg=niworkflows-0.4.4',
+    '@a48f47e72fdb0929a67000b3e22285ae02e7a2f3#egg=niworkflows-0.4.4',
 ]
 
 TESTS_REQUIRES = [

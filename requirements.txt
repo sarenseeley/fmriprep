@@ -1,4 +1,4 @@
-git+https://github.com/oesteban/niworkflows.git@f00586dc99514fe9a5268e2e8de5f18e980fedb4#egg=niworkflows-0.4.4
+git+https://github.com/oesteban/niworkflows.git@a48f47e72fdb0929a67000b3e22285ae02e7a2f3#egg=niworkflows-0.4.4
 grabbit==0.2.3
 pybids==0.6.5
 versioneer
