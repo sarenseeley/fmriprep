@@ -356,7 +356,7 @@ and used as T1w-reference throughout the workflow.
         ])
 
     seg2msks = pe.Node(niu.Function(function=_seg2msks), name='seg2msks')
-    seg_rpt = pe.Node(ROIsPlot(colors=['r', 'magenta', 'b', 'g']), name='seg_rpt')
+    seg_rpt = pe.Node(ROIsPlot(colors=['lightblue', 'b', 'magenta']), name='seg_rpt')
     anat_reports_wf = init_anat_reports_wf(
         reportlets_dir=reportlets_dir, output_references=output_references,
         freesurfer=freesurfer)
