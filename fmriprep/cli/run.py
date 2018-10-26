@@ -84,13 +84,14 @@ def get_parser():
     g_outputs.add_argument(
         '--output-references', required=False, action='store', nargs='+',
         choices=['T1w',  # Future options: boldreg, orig
-                 'MNI152Lin', 'MNI152NLin2009cAsym',
+                 'MNI', 'MNI152Lin', 'MNI152NLin2009cAsym',
                  'fsnative', 'fsaverage', 'fsaverage6', 'fsaverage5'],
         default=['MNI152NLin2009cAsym', 'fsaverage5'],
         help="""\
 reference (standardized when a template is selected) volume and surfaces \
 that the final functional series will be resampled to:
   - T1w: subject anatomical volume
+  - MNI: a shorthand for ``MNI152NLin2009cAsym``
   - MNI152*: various ICBM152 MNI template versions (e.g. MNI152Lin, MNI152NLin2009cAsym)
   - fsnative: individual subject surface
   - fsaverage*: FreeSurfer average meshes""")
@@ -179,6 +180,10 @@ but is not used in normalization.""")
     g_conf.add_argument(
         '--force-no-bbr', action='store_false', dest='use_bbr', default=None,
         help='Do not use boundary-based registration (no goodness-of-fit checks)')
+    g_conf.add_argument(
+        '--hmc-use-mcflirt', required=False, action='store_true', default=False,
+        help='Head-Motion Correction (HMC) - use FSL\'s ``mcflirt`` instead '
+        'of AFNI\'s ``3dVolreg``.')
 
     # ICA_AROMA options
     g_aroma = parser.add_argument_group('Specific options for running ICA_AROMA')
@@ -406,6 +411,12 @@ def build_workflow(opts, retval):
 
     # Handle spatial references for outputs
     output_references = set(opts.output_references)  # Deduplicate first
+
+    # Accept 'MNI' as an alias for 'MNI152NLin2009cAsym'
+    if 'MNI' in output_references:
+        output_references.add('MNI152NLin2009cAsym')
+        output_references.remove('MNI')
+
     if opts.template:
         logger.warning(
             'Option "--template" has been deprecated in fMRIPrep 1.2.0, please '
@@ -590,6 +601,7 @@ def build_workflow(opts, retval):
         use_aroma=opts.use_aroma,
         aroma_melodic_dim=opts.aroma_melodic_dimensionality,
         ignore_aroma_err=opts.ignore_aroma_denoising_errors,
+        use_mcflirt=opts.hmc_use_mcflirt,
     )
     retval['return_code'] = 0
 
