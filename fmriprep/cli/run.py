@@ -80,7 +80,7 @@ def get_parser():
 
     # Outputs
     g_outputs = parser.add_argument_group(
-        'Prescribing outputs (templates, spaces, resolutions, etc.')
+        'Prescribing outputs (templates, spaces, resolutions, etc.)')
     g_outputs.add_argument(
         '--output-references', required=False, action='store', nargs='+',
         choices=['T1w',  # Future options: boldreg, orig
@@ -88,7 +88,7 @@ def get_parser():
                  'fsnative', 'fsaverage', 'fsaverage6', 'fsaverage5'],
         default=['MNI152NLin2009cAsym', 'fsaverage5'],
         help="""\
-reference (standardized when a template is selected) volume and surfaces \
+Reference (standardized when a template is selected) volume and surfaces \
 that the final functional series will be resampled to:
   - T1w: subject anatomical volume
   - MNI: a shorthand for ``MNI152NLin2009cAsym``
@@ -113,11 +113,13 @@ but is not used in normalization.""")
     # Deprecated options
     g_outputs.add_argument(
         '--output-grid-reference', required=False, action='store',
-        help='Deprecated after FMRIPREP 1.0.8. Please use --template-resampling-grid instead.')
+        help='Deprecated after FMRIPREP 1.0.8. '
+             'Please use ``--template-resampling-grid`` instead.')
     g_outputs.add_argument(
         '--output-space', required=False, action='store', nargs='*',
         choices=['T1w', 'template', 'fsnative', 'fsaverage', 'fsaverage6', 'fsaverage5'],
-        help='volume and surface spaces to resample functional series into\n'
+        help='Deprecated after FMRIPREP 1.2.0. Please use ``--output-references`` instead.\n'
+             'volume and surface spaces to resample functional series into\n'
              ' - T1w: subject anatomical volume\n'
              ' - template: normalization target specified by --template\n'
              ' - fsnative: individual subject surface\n'
@@ -127,7 +129,8 @@ but is not used in normalization.""")
     )
     g_outputs.add_argument(
         '--template', required=False, action='store', choices=['MNI152NLin2009cAsym'],
-        help='volume template space (default: MNI152NLin2009cAsym)')
+        help='Deprecated after FMRIPREP 1.2.0. Please use ``--output-references`` instead.\n'
+             'Volume template space (default: MNI152NLin2009cAsym)')
 
     # Performance options
     g_perfm = parser.add_argument_group('Options to handle performance')
