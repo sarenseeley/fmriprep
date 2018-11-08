@@ -1121,11 +1121,11 @@ def init_segs_to_native_wf(name='segs_to_native', segmentation='aseg'):
 
     if segmentation.startswith('aparc'):
         if segmentation == 'aparc_aseg':
-            def _sel(x): return x[0]
+            def _sel(x): return [parc for parc in x if 'aparc+' in parc][0]
         elif segmentation == 'aparc_a2009s':
-            def _sel(x): return x[1]
+            def _sel(x): return [parc for parc in x if 'a2009s+' in parc][0]
         elif segmentation == 'aparc_dkt':
-            def _sel(x): return x[2]
+            def _sel(x): return [parc for parc in x if 'DKTatlas+' in parc][0]
         segmentation = (segmentation, _sel)
 
     workflow.connect([
@@ -1298,10 +1298,10 @@ def init_anat_derivatives_wf(output_dir, template, freesurfer,
 
     if freesurfer:
         ds_t1_fsaseg = pe.Node(
-            DerivativesDataSink(base_directory=output_dir, suffix='label-aseg_dseg'),
+            DerivativesDataSink(base_directory=output_dir, desc='aseg', suffix='dseg'),
             name='ds_t1_fsaseg', run_without_submitting=True)
         ds_t1_fsparc = pe.Node(
-            DerivativesDataSink(base_directory=output_dir, suffix='label-aparcaseg_dseg'),
+            DerivativesDataSink(base_directory=output_dir, desc='aparcaseg', suffix='dseg'),
             name='ds_t1_fsparc', run_without_submitting=True)
         workflow.connect([
             (inputnode, lta_2_itk, [('t1_2_fsnative_forward_transform', 'in_lta')]),

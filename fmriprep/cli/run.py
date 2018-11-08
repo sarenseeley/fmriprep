@@ -18,9 +18,6 @@ from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
 from multiprocessing import cpu_count
 from time import strftime
-import nibabel
-
-nibabel.arrayproxy.KEEP_FILE_OPEN_DEFAULT = 'auto'
 
 logging.addLevelName(25, 'IMPORTANT')  # Add a new level between INFO and WARNING
 logging.addLevelName(15, 'VERBOSE')  # Add a new level between INFO and DEBUG
@@ -566,7 +563,7 @@ def build_workflow(opts, retval):
             'Option --output-grid-reference is deprecated, please use '
             '--template-resampling-grid')
         template_out_grid = template_out_grid or opts.output_grid_reference
-    if opts.debug is not None:
+    if opts.debug:
         logger.warning('Option --debug is deprecated and has no effect')
 
     retval['workflow'] = init_fmriprep_wf(
