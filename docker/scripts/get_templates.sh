@@ -13,7 +13,6 @@ OASIS_DKT31_SHA256="623fa7141712b1a7263331dba16eb069a4443e9640f52556c89d46161147
 EPI_TEMPLATE="https://files.osf.io/v1/resources/fvuh8/providers/osfstorage/5bc12155ac011000176bff82"
 EPI_SHA256="fcd6980ef98c9d7622c6dc2a7747ff51ba3909d98e2a740df9a8265d50920d1b"
 
-
 GET(){
     URL=$1; SHA256=$2;
     mkfifo pipe.tar.gz
