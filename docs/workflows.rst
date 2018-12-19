@@ -23,6 +23,7 @@ is presented below:
         subject_id='test',
         name='single_subject_wf',
         task_id='',
+        echo_idx=None,
         longitudinal=False,
         t2s_coreg=False,
         omp_nthreads=1,
@@ -77,7 +78,7 @@ T1w/T2w preprocessing
                               num_t1w=1)
 
 The anatomical sub-workflow begins by constructing an average image by
-:ref:`conforming <conformation>` all found T1w images to RAS orientation and
+conforming all found T1w images to RAS orientation and
 a common voxel size, and, in the case of multiple images, averages them into a
 single reference template (see `Longitudinal processing`_).
 
@@ -276,15 +277,6 @@ BOLD preprocessing
 Preprocessing of :abbr:`BOLD (blood-oxygen level-dependent)` files is
 split into multiple sub-workflows described below.
 
-In the case of multi-echo :abbr:`BOLD (blood-oxygen level-dependent)` data,
-each echo is processed independently. The two exceptions to this occur for
-:ref:`head-motion estimation <bold_hmc>` and :ref:`T2* map creation <bold_t2s>`.
-
-For the :ref:`head-motion estimation workflow <bold_hmc>`, only the first echo
-is submitted as this echo is expected to have the highest contrast between gray
-and white matter. For :ref:`T2* map creation <bold_t2s>`, all echos are
-considered jointly to look at voxel-wise T2* decay.
-
 .. _bold_ref:
 
 BOLD reference image estimation
@@ -375,27 +367,6 @@ If a :abbr:`BOLD (blood-oxygen level-dependent)` series has fewer than
 5 usable (steady-state) volumes, slice time correction will be disabled
 for that run.
 
-.. _bold_t2s:
-
-T2* Driven Coregistration
-~~~~~~~~~~~~~~~~~~~~~~~~~
-:mod:`fmriprep.workflows.bold.t2s.init_bold_t2s_wf`
-
-.. workflow::
-    :graph2use: orig
-    :simple_form: yes
-
-    from fmriprep.workflows.bold import init_bold_t2s_wf
-    wf = init_bold_t2s_wf(
-        bold_echos=['echo1', 'echo2', 'echo3'],
-        echo_times=[13.6, 29.79, 46.59],
-        mem_gb=3,
-        omp_nthreads=1)
-
-If the ``--t2s-coreg`` command line argument is supplied with multi-echo
-:abbr:`BOLD (blood-oxygen level-dependent)` data, a T2* map is generated.
-This T2* map is then used in place of the :ref:`BOLD reference image <bold_ref>`
-to :ref:`register the BOLD series to the T1w image <bold_reg>` of the same subject.
 
 Susceptibility Distortion Correction (SDC)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -480,6 +451,7 @@ EPI to MNI transformation
     from fmriprep.workflows.bold import init_bold_mni_trans_wf
     wf = init_bold_mni_trans_wf(
         template='MNI152NLin2009cAsym',
+		freesurfer=True,
         mem_gb=1,
         omp_nthreads=1,
         template_out_grid='native')
@@ -560,13 +532,13 @@ ICA-AROMA
 ~~~~~~~~~
 :mod:`fmriprep.workflows.bold.confounds.init_ica_aroma_wf`
 
-When one of the `--output-spaces` selected is in MNI space, ICA-AROMA denoising 
+When one of the `--output-spaces` selected is in MNI space, ICA-AROMA denoising
 can be automatically appended to the workflow.
 The number of ICA-AROMA components depends on a dimensionality estimate made by MELODIC.
-For datasets with a very short TR and a large number of timepoints, this may result 
-in an unusually high number of components. 
-By default, dimensionality is limited to a maximum of 200 components. 
-To override this upper limit one may specify the number of components to be extracted 
+For datasets with a very short TR and a large number of timepoints, this may result
+in an unusually high number of components.
+By default, dimensionality is limited to a maximum of 200 components.
+To override this upper limit one may specify the number of components to be extracted
 with ``--aroma-melodic-dimensionality``.
 Further details on the implementation are given within the workflow generation function (:mod:`fmriprep.workflows.bold.confounds.init_ica_aroma_wf`).
 
@@ -600,3 +572,22 @@ A visualization of the AROMA component classification is also included in the HT
     Right hand side of each map: time series (top in seconds),
     frequency spectrum (bottom in Hertz).
     Components classified as signal in green; noise in red.
+
+
+.. _bold_t2s:
+
+T2* Driven Coregistration
+~~~~~~~~~~~~~~~~~~~~~~~~~
+:mod:`fmriprep.workflows.bold.t2s.init_bold_t2s_wf`
+
+If multi-echo :abbr:`BOLD (blood-oxygen level-dependent)` data is supplied,
+this workflow uses the `tedana`_ `T2* workflow`_ to generate an adaptive T2* map
+and optimally weighted combination of all supplied single echo time series.
+This optimaly combined time series is then carried forward for all subsequent
+preprocessing steps.
+Optionally, if the ``--t2s-coreg`` flag is supplied, the T2* map is then used
+in place of the :ref:`BOLD reference image <bold_ref>` to
+:ref:`register the BOLD series to the T1w image <bold_reg>` of the same subject.
+
+.. _tedana: https://github.com/me-ica/tedana
+.. _`T2* workflow`: https://tedana.readthedocs.io/en/latest/generated/tedana.workflows.t2smap_workflow.html#tedana.workflows.t2smap_workflow  # noqa
