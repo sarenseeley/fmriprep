@@ -14,7 +14,7 @@ from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, freesurfer as fs
 from nipype.interfaces.fsl import Split as FSLSplit
 
-from niworkflows.data import get_template, TEMPLATE_ALIASES
+from templateflow.api import get as get_template
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 from niworkflows.interfaces.freesurfer import (
@@ -84,6 +84,7 @@ def init_bold_surf_wf(mem_gb, output_spaces, medial_surface_nan, name='bold_surf
             BOLD series, resampled to FreeSurfer surfaces
 
     """
+    # Ensure volumetric spaces do not sneak into this workflow
     spaces = [space for space in output_spaces if space.startswith('fs')]
 
     workflow = Workflow(name=name)
@@ -281,13 +282,9 @@ generating a *preprocessed BOLD run in {tpl} space*.
 
     gen_ref = pe.Node(GenerateSamplingReference(), name='gen_ref',
                       mem_gb=0.3)  # 256x256x256 * 64 / 8 ~ 150MB)
-    # Account for template aliases
-    template_name = TEMPLATE_ALIASES.get(template, template)
-    # Template path
-    template_dir = get_template(template_name)
-
-    gen_ref.inputs.fixed_image = str(
-        template_dir / ('tpl-%s_space-MNI_res-01_T1w.nii.gz' % template_name))
+    gen_ref.inputs.fixed_image = str(get_template(
+        template, resolution=1, desc=None, suffix='T1w',
+        extensions=['.nii', '.nii.gz']))
 
     mask_mni_tfm = pe.Node(
         ApplyTransforms(interpolation='MultiLabel', float=True),
@@ -347,12 +344,11 @@ generating a *preprocessed BOLD run in {tpl} space*.
         ])
     elif template_out_grid in ['1mm', '2mm']:
         res = int(template_out_grid[0])
-        mask_mni_tfm.inputs.reference_image = str(
-            template_dir /
-            ('tpl-%s_space-MNI_res-%02d_brainmask.nii.gz' % (template_name, res)))
-        bold_to_mni_transform.inputs.reference_image = str(
-            template_dir /
-            ('tpl-%s_space-MNI_res-%02d_T1w.nii.gz' % (template_name, res)))
+        mask_mni_tfm.inputs.reference_image = str(get_template(
+            template, resolution=res, desc='brain', suffix='mask'))
+        bold_to_mni_transform.inputs.reference_image = str(get_template(
+            template, resolution=res, desc=None, suffix='T1w',
+            extensions=['.nii', '.nii.gz']))
     else:
         mask_mni_tfm.inputs.reference_image = template_out_grid
         bold_to_mni_transform.inputs.reference_image = template_out_grid
@@ -380,13 +376,13 @@ generating a *preprocessed BOLD run in {tpl} space*.
                 (gen_ref, aparc_mni_tfm, [('out_file', 'reference_image')]),
             ])
         elif template_out_grid in ['1mm', '2mm']:
-            res = int(template_out_grid[0])
+            entities = {'resolution': int(template_out_grid[0]),
+                        'desc': 'brain', 'suffix': 'mask',
+                        'extensions': ['.nii', '.nii.gz']}
             aseg_mni_tfm.inputs.reference_image = str(
-                template_dir /
-                ('tpl-%s_space-MNI_res-%02d_brainmask.nii.gz' % (template_name, res)))
+                get_template(template, **entities))
             aparc_mni_tfm.inputs.reference_image = str(
-                template_dir /
-                ('tpl-%s_space-MNI_res-%02d_T1w.nii.gz' % (template_name, res)))
+                get_template(template, **entities))
         else:
             aseg_mni_tfm.inputs.reference_image = template_out_grid
             aparc_mni_tfm.inputs.reference_image = template_out_grid

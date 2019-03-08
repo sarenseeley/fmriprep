@@ -9,7 +9,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 __author__ = 'The CRN developers'
-__copyright__ = 'Copyright 2018, Center for Reproducible Neuroscience, Stanford University'
+__copyright__ = 'Copyright 2019, Center for Reproducible Neuroscience, Stanford University'
 __credits__ = ('Contributors: please check the ``.zenodo.json`` file at the top-level folder'
                'of the repository')
 __license__ = '3-clause BSD'
@@ -84,20 +84,22 @@ SETUP_REQUIRES = [
 ]
 
 REQUIRES = [
-    'grabbit==0.2.3',
     'indexed_gzip>=0.8.8',
     'nibabel>=2.2.1',
     'nilearn',
     'nipype>=1.1.7',
     'nitime',
-    'niworkflows>=0.5.2.post5,<0.5.3',
+    'niworkflows<0.9.0a0,>=0.8.0',
     'numpy',
     'pandas',
-    'pybids==0.6.5',
+    'psutil>=5.4',
+    'pybids<0.8.0a0,>=0.7.1',
     'pyyaml',
     'scikit-image',
+    'smriprep<0.2.0a0,>=0.1.0',
     'statsmodels',
     'tedana>=0.0.5',
+    'templateflow<0.2.0a0,>=0.1.0',
 ]
 
 
@@ -121,8 +123,8 @@ EXTRA_REQUIRES = {
         'sphinx_rtd_theme',
     ],
     'duecredit': ['duecredit'],
-    'resmon': ['psutil>=5.4.0'],
-    'sentry': ['sentry-sdk>=0.5.3'],
+    'resmon': [],
+    'sentry': ['sentry-sdk>=0.6.9'],
     'tests': TESTS_REQUIRES,
 }
 EXTRA_REQUIRES['docs'] = EXTRA_REQUIRES['doc']
@@ -132,7 +134,7 @@ EXTRA_REQUIRES['all'] = list(set([
     v for deps in EXTRA_REQUIRES.values() for v in deps]))
 
 CLASSIFIERS = [
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 4 - Beta',
     'Intended Audience :: Science/Research',
     'Topic :: Scientific/Engineering :: Image Recognition',
     'License :: OSI Approved :: BSD License',

@@ -13,7 +13,7 @@ from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, fsl
 from nipype.algorithms import confounds as nac
 
-from niworkflows.data import get_template
+from templateflow.api import get as get_template
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 from niworkflows.interfaces.fixes import FixHeaderApplyTransforms as ApplyTransforms
 from niworkflows.interfaces.images import SignalExtraction
@@ -373,9 +373,9 @@ def init_carpetplot_wf(mem_gb, metadata, name="bold_carpet_wf"):
     # Warp segmentation into EPI space
     resample_parc = pe.Node(ApplyTransforms(
         float=True,
-        input_image=str(
-            get_template('MNI152NLin2009cAsym') /
-            'tpl-MNI152NLin2009cAsym_space-MNI_res-01_label-carpet_atlas.nii.gz'),
+        input_image=str(get_template(
+            'MNI152NLin2009cAsym', resolution=1, desc='carpet',
+            suffix='dseg', extensions=['.nii', '.nii.gz'])),
         dimension=3, default_value=0, interpolation='MultiLabel'),
         name='resample_parc')
 
@@ -415,7 +415,7 @@ def init_carpetplot_wf(mem_gb, metadata, name="bold_carpet_wf"):
 def init_ica_aroma_wf(template, metadata, mem_gb, omp_nthreads,
                       name='ica_aroma_wf',
                       susan_fwhm=6.0,
-                      ignore_aroma_err=False,
+                      err_on_aroma_warn=False,
                       aroma_melodic_dim=-200,
                       use_fieldwarp=True):
     """
@@ -473,7 +473,7 @@ def init_ica_aroma_wf(template, metadata, mem_gb, omp_nthreads,
             FSL ``susan`` (default: 6.0mm)
         use_fieldwarp : bool
             Include SDC warp in single-shot transform from BOLD to MNI
-        ignore_aroma_err : bool
+        err_on_aroma_warn : bool
             Do not fail on ICA-AROMA errors
         aroma_melodic_dim: int
             Set the dimensionality of the MELODIC ICA decomposition.
@@ -550,8 +550,9 @@ in the corresponding confounds file.
         freesurfer=False,
         mem_gb=mem_gb,
         omp_nthreads=omp_nthreads,
-        template_out_grid=str(
-            get_template('MNI152Lin') / 'tpl-MNI152Lin_space-MNI_res-02_T1w.nii.gz'),
+        template_out_grid=str(get_template(
+            'MNI152Lin', resolution=2, desc=None, suffix='T1w',
+            extensions=['.nii', '.nii.gz'])),
         use_compression=False,
         use_fieldwarp=use_fieldwarp,
         name='bold_mni_trans_wf'
@@ -587,7 +588,7 @@ in the corresponding confounds file.
                                    name='add_nonsteady')
 
     # extract the confound ICs from the results
-    ica_aroma_confound_extraction = pe.Node(ICAConfounds(ignore_aroma_err=ignore_aroma_err),
+    ica_aroma_confound_extraction = pe.Node(ICAConfounds(err_on_aroma_warn=err_on_aroma_warn),
                                             name='ica_aroma_confound_extraction')
 
     ds_report_ica_aroma = pe.Node(

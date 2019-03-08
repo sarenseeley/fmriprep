@@ -49,7 +49,7 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
                          use_bbr, t2s_coreg, bold2t1w_dof, reportlets_dir,
                          output_spaces, template, output_dir, omp_nthreads,
                          fmap_bspline, fmap_demean, use_syn, force_syn,
-                         use_aroma, ignore_aroma_err, aroma_melodic_dim,
+                         use_aroma, err_on_aroma_warn, aroma_melodic_dim,
                          medial_surface_nan, cifti_output,
                          debug, low_mem, template_out_grid,
                          layout=None, num_bold=1):
@@ -83,7 +83,7 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
                                   medial_surface_nan=False,
                                   cifti_output=False,
                                   use_aroma=False,
-                                  ignore_aroma_err=False,
+                                  err_on_aroma_warn=False,
                                   aroma_melodic_dim=-200,
                                   num_bold=1)
 
@@ -134,7 +134,7 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
             **Temporary**: Always run SyN-based SDC
         use_aroma : bool
             Perform ICA-AROMA on MNI-resampled functional series
-        ignore_aroma_err : bool
+        err_on_aroma_warn : bool
             Do not fail on ICA-AROMA errors
         medial_surface_nan : bool
             Replace medial wall values with NaNs on functional GIFTI files
@@ -246,7 +246,7 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
 
     sbref_file = None
     # For doc building purposes
-    if layout is None or bold_file == 'bold_preprocesing':
+    if not hasattr(layout, 'parse_file_entities'):
         LOGGER.log(25, 'No valid layout: building empty workflow.')
         metadata = {
             'RepetitionTime': 2.0,
@@ -254,7 +254,7 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
             'PhaseEncodingDirection': 'j',
         }
         fmaps = [{
-            'type': 'phasediff',
+            'suffix': 'phasediff',
             'phasediff': 'sub-03/ses-2/fmap/sub-03_ses-2_run-1_phasediff.nii.gz',
             'magnitude1': 'sub-03/ses-2/fmap/sub-03_ses-2_run-1_magnitude1.nii.gz',
             'magnitude2': 'sub-03/ses-2/fmap/sub-03_ses-2_run-1_magnitude2.nii.gz',
@@ -264,8 +264,8 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
     else:
         # Find associated sbref, if possible
         entities = layout.parse_file_entities(ref_file)
-        entities['type'] = 'sbref'
-        files = layout.get(**entities, extensions=['nii', 'nii.gz'])
+        entities['suffix'] = 'sbref'
+        files = layout.get(return_type='file', extensions=['nii', 'nii.gz'], **entities)
         refbase = os.path.basename(ref_file)
         if 'sbref' in ignore:
             LOGGER.info("Single-band reference files ignored.")
@@ -273,7 +273,7 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
             LOGGER.warning("Single-band reference found, but not supported in "
                            "multi-echo workflows at this time. Ignoring.")
         elif files:
-            sbref_file = files[0].filename
+            sbref_file = files[0]
             sbbase = os.path.basename(sbref_file)
             if len(files) > 1:
                 LOGGER.warning(
@@ -291,11 +291,11 @@ def init_func_preproc_wf(bold_file, ignore, freesurfer,
         if 'fieldmaps' not in ignore:
             fmaps = layout.get_fieldmap(ref_file, return_list=True)
             for fmap in fmaps:
-                fmap['metadata'] = layout.get_metadata(fmap[fmap['type']])
+                fmap['metadata'] = layout.get_metadata(fmap[fmap['suffix']])
 
         # Run SyN if forced or in the absence of fieldmap correction
         if force_syn or (use_syn and not fmaps):
-            fmaps.append({'type': 'syn'})
+            fmaps.append({'suffix': 'syn'})
 
         # Short circuits: (True and True and (False or 'TooShort')) == 'TooShort'
         run_stc = ("SliceTiming" in metadata and
@@ -361,9 +361,13 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                           slice_timing=run_stc,
                           registration='FreeSurfer' if freesurfer else 'FSL',
                           registration_dof=bold2t1w_dof,
-                          pe_direction=metadata.get("PhaseEncodingDirection")),
+                          pe_direction=metadata.get("PhaseEncodingDirection"),
+                          tr=metadata.get("RepetitionTime")),
         name='summary', mem_gb=DEFAULT_MEMORY_MIN_GB, run_without_submitting=True)
 
+    # CIfTI output: currently, we only support fsaverage{5,6}
+    cifti_spaces = [s for s in output_spaces if s in ('fsaverage5', 'fsaverage6')]
+    cifti_output = cifti_output and cifti_spaces
     func_derivatives_wf = init_func_derivatives_wf(output_dir=output_dir,
                                                    output_spaces=output_spaces,
                                                    template=template,
@@ -476,14 +480,14 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
     if not fmaps:
         LOGGER.warning('SDC: no fieldmaps found or they were ignored (%s).',
                        ref_file)
-    elif fmaps[0]['type'] == 'syn':
+    elif fmaps[0]['suffix'] == 'syn':
         LOGGER.warning(
             'SDC: no fieldmaps found or they were ignored. '
             'Using EXPERIMENTAL "fieldmap-less SyN" correction '
             'for dataset %s.', ref_file)
     else:
         LOGGER.log(25, 'SDC: fieldmap estimation of type "%s" intended for %s found.',
-                   fmaps[0]['type'], ref_file)
+                   fmaps[0]['suffix'], ref_file)
 
     # MULTI-ECHO EPI DATA #############################################
     if multiecho:
@@ -613,7 +617,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
 
     if fmaps:
         from ..fieldmap.unwarp import init_fmap_unwarp_report_wf
-        sdc_type = fmaps[0]['type']
+        sdc_type = fmaps[0]['suffix']
 
         # Report on BOLD correction
         fmap_unwarp_report_wf = init_fmap_unwarp_report_wf(
@@ -731,7 +735,6 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             # ICA-AROMA workflow
             # Internally resamples to MNI152 Linear (2006)
             from .confounds import init_ica_aroma_wf
-            from niworkflows.interfaces.utils import JoinTSVColumns
 
             ica_aroma_wf = init_ica_aroma_wf(
                 template=template,
@@ -739,11 +742,13 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
                 mem_gb=mem_gb['resampled'],
                 omp_nthreads=omp_nthreads,
                 use_fieldwarp=fmaps is not None,
-                ignore_aroma_err=ignore_aroma_err,
+                err_on_aroma_warn=err_on_aroma_warn,
                 aroma_melodic_dim=aroma_melodic_dim,
                 name='ica_aroma_wf')
 
-            join = pe.Node(JoinTSVColumns(), name='aroma_confounds')
+            join = pe.Node(niu.Function(output_names=["out_file"],
+                                        function=_to_join),
+                           name='aroma_confounds')
 
             workflow.disconnect([
                 (bold_confounds_wf, outputnode, [
@@ -779,10 +784,11 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             ])
 
     # SURFACES ##################################################################################
-    if freesurfer and any(space.startswith('fs') for space in output_spaces):
+    surface_spaces = [space for space in output_spaces if space.startswith('fs')]
+    if freesurfer and surface_spaces:
         LOGGER.log(25, 'Creating BOLD surface-sampling workflow.')
         bold_surf_wf = init_bold_surf_wf(mem_gb=mem_gb['resampled'],
-                                         output_spaces=output_spaces,
+                                         output_spaces=surface_spaces,
                                          medial_surface_nan=medial_surface_nan,
                                          name='bold_surf_wf')
         workflow.connect([
@@ -795,8 +801,7 @@ Non-gridded (surface) resamplings were performed using `mri_vol2surf`
             (bold_surf_wf, outputnode, [('outputnode.surfaces', 'surfaces')]),
         ])
 
-        # CIFTI output
-        if cifti_output and 'template' in output_spaces:
+        if cifti_output:
             bold_surf_wf.__desc__ += """\
 *Grayordinates* files [@hcppipelines], which combine surface-sampled
 data and volume-sampled data, were also generated.
@@ -804,10 +809,10 @@ data and volume-sampled data, were also generated.
             gen_cifti = pe.MapNode(GenerateCifti(), iterfield=["surface_target", "gifti_files"],
                                    name="gen_cifti")
             gen_cifti.inputs.TR = metadata.get("RepetitionTime")
+            gen_cifti.inputs.surface_target = cifti_spaces
 
             workflow.connect([
                 (bold_surf_wf, gen_cifti, [
-                    ('targets.out', 'surface_target'),
                     ('outputnode.surfaces', 'gifti_files')]),
                 (inputnode, gen_cifti, [('subjects_dir', 'subjects_dir')]),
                 (bold_mni_trans_wf, gen_cifti, [('outputnode.bold_mni', 'bold_file')]),
@@ -1062,3 +1067,15 @@ def _get_wf_name(bold_fname):
         ".", "_").replace(" ", "").replace("-", "_").replace("_bold", "_wf")
 
     return name
+
+
+def _to_join(in_file, join_file):
+    """
+    Joins two tsv files if the join_file is not None
+    """
+    from niworkflows.interfaces.utils import JoinTSVColumns
+    if join_file is None:
+        return in_file
+    else:
+        res = JoinTSVColumns(in_file=in_file, join_file=join_file).run()
+        return res.outputs.out_file

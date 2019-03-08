@@ -15,7 +15,9 @@ from pkg_resources import resource_filename as pkgr_fn
 
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu, fsl, afni, ants
-from niworkflows.data import get_template
+
+from templateflow.api import get as get_template
+
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 from niworkflows.interfaces.ants import AI
 from niworkflows.interfaces.fixes import (
@@ -273,9 +275,10 @@ def init_enhance_and_skullstrip_bold_wf(
     apply_mask = pe.Node(fsl.ApplyMask(), name='apply_mask')
 
     if not pre_mask:
-        bold_template = get_template('fMRIPrep') / 'tpl-fMRIPrep_space-MNI_res-02_boldref.nii.gz'
-        brain_mask = get_template('MNI152NLin2009cAsym') / \
-            'tpl-MNI152NLin2009cAsym_space-MNI_res-02_brainmask.nii.gz'
+        bold_template = get_template(
+            'MNI152NLin2009cAsym', resolution=2, desc='fMRIPrep', suffix='boldref')
+        brain_mask = get_template(
+            'MNI152NLin2009cAsym', resolution=2, desc='brain', suffix='mask')
 
         # Initialize transforms with antsAI
         init_aff = pe.Node(AI(
@@ -290,7 +293,8 @@ def init_enhance_and_skullstrip_bold_wf(
             name='init_aff',
             n_procs=omp_nthreads)
 
-        if parseversion(Registration().version) > Version('2.2.0'):
+        # Registration().version may be None
+        if parseversion(Registration().version or '0.0.0') > Version('2.2.0'):
             init_aff.inputs.search_grid = (40, (0, 40, 40))
 
         # Set up spatial normalization
